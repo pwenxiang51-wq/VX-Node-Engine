@@ -231,28 +231,28 @@ EOF
 
 function install_vmess_ws() {
     check_sys && install_core && init_json && get_smart_ip
-    echo -e "\n${yellow}>>> 锻造 VMess-WS (CDN神盾) 节点：${plain}"
-    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
-    read -p "👉 伪装域名 (必须填真实的已解析域名，或留空用自签): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"cloudflare.com"}
+    echo -e "\n${yellow}>>> 锻造 VMess-WS (纯明文直连/CDN神盾) 节点：${plain}"
+    read -p "👉 监听端口 (直接回车随机, 若要套CF CDN推荐填 80/8080): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-8080}
+    
     UUID=$($BIN_FILE generate uuid | tr -d '\r\n')
     WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 
-    generate_cert_dynamic "$SNI_DOMAIN"
+    # 移除了自签证书，改为纯净 WS 监听
     cat << EOF > /tmp/vx_tmp.json
-{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"},"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","certificate_path":"$CERT_DIR/cert.crt","key_path":"$CERT_DIR/private.key"}}
+{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"}}
 EOF
     jq 'del(.inbounds[] | select(.tag == "vmess-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
 
     systemctl restart vx-core.service
     
-    # 构建 v2rayN 标准 VMess JSON 编码
-    VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+    # 构建无 TLS 的纯净 VMess 链接
+    VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "" --arg path "$WS_PATH" --arg tls "" --arg sni "" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
     SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
     sed -i '/VMess-VeloX/d' "$LINK_FILE" 2>/dev/null; echo "$SHARE" >> "$LINK_FILE"
-    echo -e "\n${green}✅ VMess-WS 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
+    echo -e "\n${green}✅ VMess-WS (纯净直连版) 装载完成！现在你可以直接把它套入 Cloudflare CDN。${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
-
 function install_ss_2022() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 SS-2022 (纯净光速直连) 节点：${plain}"
@@ -282,18 +282,25 @@ EOF
 # ==================================================
 function export_all_nodes() {
     clear
-    echo -e "${cyan}================ [ 🖨️ VX 节点聚合提取中心 ] =================${plain}"
+    echo -e "${cyan}================ [ 🖨️ VX 节点精准提取中心 ] =================${plain}"
     if [[ ! -s "$LINK_FILE" ]]; then
         echo -e "${red}❌ 当前没有任何节点被装载！请先返回菜单生成节点。${plain}"
         return
     fi
-    echo -e "${yellow}>>> 📝 独立明文链接：${plain}"
-    cat "$LINK_FILE" | while read line; do echo -e "${green}${line}${plain}\n"; done
-    echo -e "${yellow}>>> 🔗 聚合 Base64 订阅编码 (供 v2rayN/Clash 一键导入)：${plain}"
+    
+    echo -e "${yellow}>>> 📱 独立节点链接与二维码：${plain}"
+    # 逐行读取链接，每个链接单独打印并生成一个小二维码
+    cat "$LINK_FILE" | while read line; do 
+        PROTOCOL=$(echo "$line" | cut -d ':' -f 1 | tr 'a-z' 'A-Z')
+        echo -e "\n${purple}【 $PROTOCOL 协议 】${plain}"
+        echo -e "${green}🔗 链接:${plain} $line"
+        echo "$line" | qrencode -t UTF8
+        echo -e "${cyan}-------------------------------------------------------------${plain}"
+    done
+    
+    echo -e "${yellow}>>> 🔗 聚合 Base64 订阅编码 (供电脑端一键复制导入)：${plain}"
     B64_LINKS=$(cat "$LINK_FILE" | base64 -w 0)
     echo -e "${blue}${B64_LINKS}${plain}\n"
-    echo -e "${yellow}>>> 📱 迷你订阅二维码 (使用客户端直接扫码导入所有节点)：${plain}"
-    echo "$B64_LINKS" | qrencode -t UTF8
     echo -e "${cyan}=============================================================${plain}"
 }
 
