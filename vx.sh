@@ -70,6 +70,10 @@ function show_dashboard() {
     echo -e "${cyan}======================================================================${plain}"
     echo -e "         🚀 Velox Node Engine (VX) 终极控制枢纽 V4.3.0 🚀       "
     echo -e "${cyan}======================================================================${plain}"
+    echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
+    echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
+    echo -e "${cyan}======================================================================${plain}"
+    # 👆👆👆 ------------------------ 👆👆👆
     echo -e "⚙️  ${yellow}系统核心状态:${plain}"
     echo -e "   系统版本: ${blue}$OS_INFO${plain} | 架构: ${blue}$ARCH${plain}"
     echo -e "   内核版本: ${blue}$KERNEL_VER${plain} | 拥塞控制: ${green}${BBR_STAT^^}${plain}"
