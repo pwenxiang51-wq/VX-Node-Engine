@@ -323,7 +323,7 @@ function install_trojan_reality() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 Trojan-Reality (NPC进阶神级) 节点：${plain}"
     read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
-    read -p "👉 伪装域名 (直接回车默认 microsoft.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
+    read -p "👉 伪装域名 (直接回车默认 apple.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
 
     TROJAN_PASS=$($BIN_FILE generate rand --hex 16 | tr -d '\r\n')
     KEYS=$($BIN_FILE generate reality-keypair)
