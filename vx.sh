@@ -20,7 +20,6 @@ BIN_FILE="/usr/local/bin/sing-box"
 JSON_FILE="$CONF_DIR/config.json"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 
-# 权限拦截
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
 
 # =========================================
