@@ -41,8 +41,8 @@ function show_dashboard() {
     HY2_STAT="${red}[未启]${plain}"; HY2_PORT="-----"; HY2_SNI="-------"
     TUIC_STAT="${red}[未启]${plain}"; TUIC_PORT="-----"; TUIC_SNI="-------"
     VM_STAT="${red}[未启]${plain}"; VM_PORT="-----"; VM_SNI="-------"
-    SS_STAT="${red}[未启]${plain}"; SS_PORT="-----"
-
+    TR_STAT="${red}[未启]${plain}"; TR_PORT="-----"; TR_SNI="-------"
+    
     if [[ -f "$JSON_FILE" ]]; then
         if jq -e '.inbounds[] | select(.tag == "vless-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VL_STAT="${green}[开启]${plain}"; VL_PORT=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .listen_port' "$JSON_FILE"); VL_SNI=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .tls.server_name' "$JSON_FILE")
@@ -56,9 +56,9 @@ function show_dashboard() {
         if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE")
         fi
-        if jq -e '.inbounds[] | select(.tag == "ss-in")' "$JSON_FILE" >/dev/null 2>&1; then
-            SS_STAT="${green}[开启]${plain}"; SS_PORT=$(jq -r '.inbounds[] | select(.tag == "ss-in") | .listen_port' "$JSON_FILE")
-        fi
+       if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
+         TR_STAT="${green}[开启]${plain}"; TR_PORT=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .listen_port' "$JSON_FILE"); TR_SNI=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .tls.server_name' "$JSON_FILE")
+     fi
     fi
 
     echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
@@ -88,7 +88,7 @@ function show_dashboard() {
     echo -e "   $HY2_STAT Hysteria-2    | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
     echo -e "   $TUIC_STAT TUIC v5       | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
     echo -e "   $VM_STAT VMess-WS      | 端口: ${cyan}$VM_PORT${plain} | 伪装: ${purple}$VM_SNI${plain}"
-    echo -e "   $SS_STAT SS-2022       | 端口: ${cyan}$SS_PORT${plain} | 伪装: ${purple}纯净光速直连${plain}"
+   echo -e "   $TR_STAT Trojan-Reality| 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
     echo -e "----------------------------------------------------------------------"
     echo -e "${cyan}======================================================================${plain}"
 }
@@ -253,28 +253,29 @@ EOF
     echo -e "\n${green}✅ VMess-WS (纯净直连版) 装载完成！现在你可以直接把它套入 Cloudflare CDN。${plain}"
     echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
-function install_ss_2022() {
+function install_trojan_reality() {
     check_sys && install_core && init_json && get_smart_ip
-    echo -e "\n${yellow}>>> 锻造 SS-2022 (纯净光速直连) 节点：${plain}"
+    echo -e "\n${yellow}>>> 锻造 Trojan-Reality (NPC进阶神级) 节点：${plain}"
     read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
-    
-    # SS-2022 标准强制要求 16 位高强度 base64 Key
-    METHOD="2022-blake3-aes-128-gcm"
-    KEY=$(openssl rand -base64 16 | tr -d '\r\n')
-    
+    read -p "👉 伪装域名 (直接回车默认 microsoft.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"microsoft.com"}
+
+    TROJAN_PASS=$($BIN_FILE generate rand --hex 16 | tr -d '\r\n')
+    KEYS=$($BIN_FILE generate reality-keypair)
+    PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
+    PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
+    SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+
     cat << EOF > /tmp/vx_tmp.json
-{"type":"shadowsocks","tag":"ss-in","listen":"::","listen_port":$LISTEN_PORT,"method":"$METHOD","password":"$KEY"}
+{"type":"trojan","tag":"trojan-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"password":"$TROJAN_PASS"}],"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","reality":{"enabled":true,"handshake":{"server":"$SNI_DOMAIN","server_port":443},"private_key":"$PRV_KEY","short_id":["$SHORT_ID"]}}}
 EOF
-    jq 'del(.inbounds[] | select(.tag == "ss-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
+    jq 'del(.inbounds[] | select(.tag == "trojan-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
 
     systemctl restart vx-core.service
-    
-    # 构建 SS 规范链接
-    B64_CRED=$(echo -n "${METHOD}:${KEY}" | base64 -w 0)
-    SHARE="ss://${B64_CRED}@${SERVER_IP}:${LISTEN_PORT}#SS-2022-VeloX"
-    sed -i '/SS-2022-VeloX/d' "$LINK_FILE" 2>/dev/null; echo "$SHARE" >> "$LINK_FILE"
-    echo -e "\n${green}✅ SS-2022 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
+
+    SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
+    sed -i '/#Trojan-Reality-VeloX/d' "$LINK_FILE" 2>/dev/null; echo "$SHARE" >> "$LINK_FILE"
+    echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
 
 # ==================================================
