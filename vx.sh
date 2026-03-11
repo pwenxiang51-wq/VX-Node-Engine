@@ -42,6 +42,12 @@ function show_dashboard() {
     TUIC_STAT="${red}[未启]${plain}"; TUIC_PORT="-----"; TUIC_SNI="-------"
     VM_STAT="${red}[未启]${plain}"; VM_PORT="-----"; VM_SNI="-------"
     TR_STAT="${red}[未启]${plain}"; TR_PORT="-----"; TR_SNI="-------"
+
+    ACME_STAT="${red}未部署 ❌${plain}"
+ if [[ -f "$CERT_DIR/acme.crt" ]]; then
+     ACME_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+     ACME_STAT="${green}已部署 ✅${plain} [${purple}${ACME_DOMAIN}${plain}]"
+ fi
     
     if [[ -f "$JSON_FILE" ]]; then
         if jq -e '.inbounds[] | select(.tag == "vless-in")' "$JSON_FILE" >/dev/null 2>&1; then
@@ -152,13 +158,69 @@ function get_smart_ip() {
     fi
 }
 
+# --- 智能双引擎发证机 (真实ACME/极速自签 无缝切换) ---
 function generate_cert_dynamic() {
     local DOMAIN=$1
     mkdir -p $CERT_DIR
-    echo -e "${cyan}>>> 正在为 [${DOMAIN}] 极速签发 10年期 ECC 量子证书...${plain}"
+    # 检测是否匹配已申请的真实 ACME 证书
+    if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+        local ACME_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt")
+        if [[ "$DOMAIN" == "$ACME_DOMAIN" ]]; then
+            echo -e "${green}>>> 智能识别到匹配的 ACME 真实证书 [${DOMAIN}]，正在挂载...${plain}"
+            cp -f $CERT_DIR/acme.crt $CERT_DIR/cert.crt
+            cp -f $CERT_DIR/acme.key $CERT_DIR/private.key
+            return
+        fi
+    fi
+    # 没匹配上，自动降级为极速量子自签
+    echo -e "${cyan}>>> 正在为 [${DOMAIN}] 极速签发 10年期 ECC 量子自签证书...${plain}"
     rm -f $CERT_DIR/private.key $CERT_DIR/cert.crt
     openssl ecparam -genkey -name prime256v1 -out $CERT_DIR/private.key >/dev/null 2>&1
     openssl req -new -x509 -days 3650 -key $CERT_DIR/private.key -out $CERT_DIR/cert.crt -subj "/C=US/ST=California/L=Los Angeles/O=Cloudflare/OU=CDN/CN=${DOMAIN}" >/dev/null 2>&1
+}
+
+# --- 🌐 ACME 真实证书独立申请模块 ---
+function apply_acme_cert() {
+    clear
+    echo -e "${cyan}================ [ 🌐 ACME 真实证书极速申请 ] =================${plain}"
+    echo -e "${yellow}⚠️ 警告：请确保您的域名已在控制台成功解析到本机器的 IP！${plain}"
+    get_smart_ip
+    echo -e "当前 VPS IP: ${green}${SERVER_IP}${plain}"
+    read -p "👉 请输入您已解析的真实域名: " REAL_DOMAIN
+    [[ -z "$REAL_DOMAIN" ]] && echo -e "${red}❌ 域名不能为空！${plain}" && sleep 2 && return
+    
+    # 依赖检查与安装 socat
+    if ! command -v socat &> /dev/null; then
+        echo -e "${cyan}>>> 正在补全 ACME 依赖 (socat)...${plain}"
+        if [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then apt-get install -y socat cron >/dev/null 2>&1; else yum install -y socat cron >/dev/null 2>&1; fi
+    fi
+
+    # 端口查杀：独立模式需要 80 端口
+    if ss -tlpn | grep -q ":80 " || netstat -tlpn | grep -q ":80 "; then
+        echo -e "${red}❌ 致命错误: 80 端口被占用！请先停止占用 80 端口的服务 (如 Nginx) 再试。${plain}"
+        sleep 3 && return
+    fi
+
+    echo -e "${yellow}>>> 正在安装 acme.sh 核心组件...${plain}"
+    curl -sL https://get.acme.sh | sh -s email=admin@${REAL_DOMAIN} >/dev/null 2>&1
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
+
+    echo -e "${yellow}>>> 正在向 Let's Encrypt 申请 [${REAL_DOMAIN}] 的 ECC 证书...${plain}"
+    ~/.acme.sh/acme.sh --issue -d ${REAL_DOMAIN} --standalone -k ec-256 --force
+    
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}❌ 申请失败！请检查域名是否解析正确，或是否被 Let's Encrypt 限流。${plain}"
+        read -p "👉 按回车返回..." && return
+    fi
+
+    echo -e "${yellow}>>> 正在安装证书到 VX 引擎核心目录...${plain}"
+    mkdir -p $CERT_DIR
+    ~/.acme.sh/acme.sh --installcert -d ${REAL_DOMAIN} --fullchainpath $CERT_DIR/acme.crt --keypath $CERT_DIR/acme.key --ecc --force >/dev/null 2>&1
+    echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt
+    
+    echo -e "\n${green}✅ ACME 真实证书部署完成！${plain}"
+    echo -e "👉 ${yellow}提示: 安装 Hys2/TUIC/Trojan 时填入此域名，将自动接管真实证书！${plain}"
+    read -p "👉 按回车返回大屏..."
 }
 
 # ==================================================
@@ -325,7 +387,7 @@ while true; do
     echo -e "  ${green}4.${plain} ➕ 新增/覆写 VMess-WS   ${cyan}[NEW✨]${plain}"
     echo -e "  ${green}5.${plain} ➕ 新增/覆写 Trojan-Reality ${cyan}[神级✨]${plain}"
     echo -e "----------------------------------------------------------------------"
-    echo -e "  ${purple}6.${plain} 🌍 附加挂载: WARP 解锁  ${yellow}[待开发]${plain}"
+    echo -e "  ${purple}6.${plain} 🌍 附加挂载: Acme 真实证书极速申请"${yellow}${plain}"
     echo -e "  ${purple}7.${plain} ⚡ 底层调优: BBR 加速    ${yellow}[待开发]${plain}"
     echo -e "----------------------------------------------------------------------"
     echo -e "  ${cyan}8.${plain} 🖨️  ${green}一键提取全节点 (明文/Base64/二维码)${plain}"
@@ -339,7 +401,8 @@ while true; do
         3) install_tuic_v5; read -p "👉 按回车返回大屏..." ;;
         4) install_vmess_ws; read -p "👉 按回车返回大屏..." ;;
         5) install_trojan_reality; read -p "👉 按回车返回大屏..." ;;
-        6|7) echo -e "\n${yellow}🚧 架构师正在拼命打磨该模块，敬请期待！${plain}"; sleep 2 ;;
+       6) apply_acme_cert ;;
+        7) echo -e "\n${yellow}🚧 架构师正在拼命打磨该模块，敬请期待！${plain}"; sleep 2 ;;
         8) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
         9) update_vx ;;
         10) uninstall_vne; read -p "👉 按回车退出..."; break ;;
