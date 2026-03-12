@@ -68,3 +68,22 @@ bash <(curl -Ls https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/
 请严格遵守您所在国家和地区的法律法规，严禁将本项目用于任何非法用途，作者不对因滥用导致的任何后果负责。
 
 底层核心驱动致谢：Sing-box | Cloudflare
+
+---
+
+## ☕ 赞赏与支持
+
+开源不易，如果 Velox 面板让你的折腾之旅变得更加优雅，为你节省了宝贵的时间，请务必在右上角给我点一个 **Star ⭐️**！你的点赞是我持续维护的唯一动力。
+
+如果大佬觉得项目超赞，欢迎通过微信扫码请我喝杯冰美式，感激不尽！🚀
+
+<div align="center">
+    <img src="coffee.jpg" alt="Velox 赞赏码" width="350" />
+    <br />
+    <br />
+    <b>“ 感谢 velox 请喝咖啡！ ”</b>
+</div>
+
+<br />
+
+Made with ❤️ by [pwenxiang51-wq](https://github.com/pwenxiang51-wq)
