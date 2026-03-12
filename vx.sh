@@ -270,8 +270,7 @@ function install_hysteria2() {
     read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
     read -p "👉 节点密码 (直接回车随机): " HYS_PASS; HYS_PASS=${HYS_PASS:-$TEMP_PASS}
     read -p "👉 绑定域名 (直接回车默认 bing.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"bing.com"}
-    generate_cert_dynamic "$SNI_DOMAIN"
-
+    
     generate_cert_dynamic "$SNI_DOMAIN"
     cat << EOF > /tmp/vx_tmp.json
 {"type":"hysteria2","tag":"hy2-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"password":"$HYS_PASS"}],"tls":{"enabled":true,"alpn":["h3"],"certificate_path":"$CERT_DIR/cert.crt","key_path":"$CERT_DIR/private.key"}}
@@ -290,13 +289,11 @@ function install_tuic_v5() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 TUIC v5 节点：${plain}"
     read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
-    read -p "👉 节点 UUID (直接回车随机): " TUIC_UUID; TUIC_UUID=${TUIC_UUID:-$TEMP_UUID}
+    read -p "👉 节点 UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
     read -p "👉 节点密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$TEMP_PASS}
     read -p "👉 绑定域名 (直接回车默认 bing.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"bing.com"}
     generate_cert_dynamic "$SNI_DOMAIN"
-    generate_cert_dynamic "$SNI_DOMAIN"
   
-    generate_cert_dynamic "$SNI_DOMAIN"
     cat << EOF > /tmp/vx_tmp.json
 {"type":"tuic","tag":"tuic-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","password":"$TUIC_PASS"}],"congestion_control":"bbr","tls":{"enabled":true,"alpn":["h3"],"certificate_path":"$CERT_DIR/cert.crt","key_path":"$CERT_DIR/private.key"}}
 EOF
@@ -314,7 +311,7 @@ function install_vmess_ws() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 VMess-WS (纯明文直连/CDN神盾) 节点：${plain}"
     read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
-    read -p "👉 节点 UUID (直接回车随机): " VMESS_UUID; VMESS_UUID=${VMESS_UUID:-$TEMP_UUID}
+    read -p "👉 节点 UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
     
     WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 
@@ -774,16 +771,17 @@ function export_all_nodes() {
     echo -e "${cyan}=============================================================${plain}"
 }
 
-function update_vx() {
-    echo -e "\n${yellow}>>> 🔄 正在热更新 VX 引擎...${plain}"
-    curl -sL "$SCRIPT_URL" -o /tmp/vx.sh && mv -f /tmp/vx.sh /usr/local/bin/vx && chmod +x /usr/local/bin/vx
-    echo -e "${green}✅ OTA 完成！请按回车重启面板。${plain}"; read -p ""; exec vx
-}
 
 function uninstall_vne() {
-    systemctl stop vx-core.service >/dev/null 2>&1; systemctl disable vx-core.service >/dev/null 2>&1
-    rm -rf $CONF_DIR $BIN_FILE $SERVICE_FILE /usr/local/bin/vx
-    systemctl daemon-reload; echo -e "${green}✅ VX 核心与所有协议已彻底粉碎！${plain}"
+    echo -e "${yellow}>>> 正在执行终极粉碎协议...${plain}"
+    systemctl stop vx-core.service vx-argo.service >/dev/null 2>&1
+    systemctl disable vx-core.service vx-argo.service >/dev/null 2>&1
+    
+    # 彻底删除核心目录、守护进程文件、快捷指令
+    rm -rf $CONF_DIR $BIN_FILE $SERVICE_FILE /etc/systemd/system/vx-argo.service /usr/local/bin/vx
+    
+    systemctl daemon-reload
+    echo -e "${green}✅ VX 核心、各协议节点、Argo 隧道守护进程已彻底挫骨扬灰！${plain}"
 }
 
 while true; do
