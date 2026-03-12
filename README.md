@@ -50,7 +50,7 @@
 在你的终端执行以下神圣指令，开启终极穿透之旅 (请务必使用 **root** 用户运行)：
 
 ```bash
-bash <(curl -Ls [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh))
+bash <(curl -Ls (https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh))
 ```
 
 ---
