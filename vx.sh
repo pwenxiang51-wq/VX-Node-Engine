@@ -664,6 +664,78 @@ EOF
 
 
 # ==================================================
+# 🔄 OTA 热更新引擎: 脚本与内核双轨升级
+# ==================================================
+function update_ota() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "            🔄 VeloX OTA 智能热更新引擎"
+    echo -e "${cyan}======================================================================${plain}"
+
+    # --- 1. 更新面板脚本自身 ---
+    echo -e "${yellow}>>> [1/2] 正在检测面板脚本更新...${plain}"
+    curl -sL "$SCRIPT_URL" -o /tmp/vx_new.sh
+    if [[ -f /tmp/vx_new.sh && -s /tmp/vx_new.sh ]]; then
+        mv /tmp/vx_new.sh /usr/local/bin/vx
+        chmod +x /usr/local/bin/vx
+        echo -e "${green}✅ 面板脚本已同步至 GitHub 最新版本！${plain}"
+    else
+        echo -e "${red}❌ 脚本拉取失败，请检查网络！${plain}"
+    fi
+
+    # --- 2. 更新 Sing-box 核心 ---
+    echo -e "\n${yellow}>>> [2/2] 正在检测 Sing-box 核心版本...${plain}"
+    
+    # 获取本地版本
+    local CURRENT_VER=$($BIN_FILE version 2>/dev/null | grep "version" | awk '{print $3}')
+    if [[ -z "$CURRENT_VER" ]]; then
+        CURRENT_VER="未知"
+    fi
+
+    # 获取远端最新版本 (解析 GitHub API)
+    local LATEST_VER=$(curl -s "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | jq -r .tag_name | sed 's/v//g')
+
+    if [[ -z "$LATEST_VER" || "$LATEST_VER" == "null" ]]; then
+         echo -e "${red}❌ 无法获取 Sing-box 最新版本信息，可能是 GitHub API 限制。${plain}"
+         read -p "👉 按回车返回大屏..." && return
+    fi
+
+    echo -e "当前本地内核版本: ${purple}v${CURRENT_VER}${plain}"
+    echo -e "GitHub 最新版本:  ${green}v${LATEST_VER}${plain}"
+
+    if [[ "$CURRENT_VER" == "$LATEST_VER" ]]; then
+        echo -e "\n${green}🎉 您的 Sing-box 已经是最新版本，无需更新！${plain}"
+    else
+        echo -e "\n${yellow}💡 发现新版本，正在为您热更新核心...${plain}"
+        
+        # 下载最新内核 (自动适配 amd64)
+        local CPU_ARCH="amd64" # 假设你的 VPS 都是主流 amd64，如果需要兼容 arm，这里可以再加个判断
+        local DL_URL="https://github.com/SagerNet/sing-box/releases/download/v${LATEST_VER}/sing-box-${LATEST_VER}-linux-${CPU_ARCH}.tar.gz"
+        
+        wget -q "$DL_URL" -O /tmp/sing-box.tar.gz
+        if [[ -f /tmp/sing-box.tar.gz ]]; then
+            tar -xzf /tmp/sing-box.tar.gz -C /tmp
+            # 停止服务，替换二进制，重启服务
+            systemctl stop vx-core.service
+            cp /tmp/sing-box-${LATEST_VER}-linux-${CPU_ARCH}/sing-box $BIN_FILE
+            chmod +x $BIN_FILE
+            systemctl start vx-core.service
+            
+            rm -rf /tmp/sing-box*
+            echo -e "${green}✅ Sing-box 核心已成功升级至 v${LATEST_VER}！服务已自动重启。${plain}"
+        else
+            echo -e "${red}❌ 核心下载失败！${plain}"
+        fi
+    fi
+
+    echo -e "\n${cyan}======================================================================${plain}"
+    echo -e "提示：若面板代码有变动，请在返回后输入 ${green}vx${plain} 重新进入以加载最新菜单。"
+    read -p "👉 按回车返回大屏..."
+}
+
+
+
+# ==================================================
 # 聚合提取中心
 # ==================================================
 function export_all_nodes() {
@@ -735,7 +807,7 @@ while true; do
         w|W) enable_warp ;;
         a|A) enable_argo ;;
         8) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
-        9) update_vx ;;
+        9) update_ota ;;
         10) uninstall_vne; read -p "👉 按回车退出..."; break ;;
         0) break ;;
         *) echo -e "${red}❌ 无效输入！${plain}"; sleep 1 ;;
