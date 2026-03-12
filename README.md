@@ -71,8 +71,9 @@ bash <(curl -Ls https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/
 
 如果大佬觉得项目超赞，欢迎通过微信扫码请我喝杯冰美式，感激不尽！🚀
 
-![赞赏码](assets/donate.png)
-
+<div align="center">
+  <img src="assets/donate.png" width="300" />
+</div>
 ---
 
 ## ⚖️ 开源协议 & 声明
