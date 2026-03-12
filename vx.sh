@@ -446,7 +446,7 @@ function install_all_nodes() {
     echo "tuic://${U3}:${PW3}@${SERVER_IP}:${P3}/?sni=${COMMON_SNI}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX" >> "$LINK_FILE"
     open_port $P3
 
-    echo -e "${yellow}>>> [4/5] 正在极速压入 VMess-WS...${plain}"
+    echo -e "${yellow}>>> [4/5] 正在极极压入 VMess-WS...${plain}"
     local P4=$(shuf -i 10000-60000 -n 1); local U4=$TEMP_UUID; local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
     jq --argjson p "$P4" --arg u "$U4" --arg w "$W4" '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w}}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
     local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-VeloX" --arg add "$SERVER_IP" --arg port "$P4" --arg id "$U4" --arg net "ws" --arg host "" --arg path "$W4" --arg tls "" --arg sni "" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
@@ -828,6 +828,36 @@ function uninstall_vne() {
     echo -e "${green}✅ VX 核心、各协议节点、Argo 隧道及 BBR 注入已彻底挫骨扬灰！系统已恢复出厂纯净态。${plain}"
 }
 
+# ==================================================
+# 📖 隐藏式避坑指南与面板说明
+# ==================================================
+function show_help() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "         📖 Velox Node Engine (VX) 使用说明与避坑指南"
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "${yellow}💡 1. 协议选择指南：${plain}"
+    echo -e "  - ${green}VLESS-Reality${plain}: 当前最稳防封协议，免域名免证书，小白无脑首选。"
+    echo -e "  - ${green}Hysteria-2${plain}: 暴力协议，专治晚高峰拥堵。需配合证书使用。"
+    echo -e "  - ${green}TUIC v5${plain}: 现代级 QUIC 协议，极致抗丢包。需配合证书使用。"
+    echo -e "  - ${green}VMess-WS${plain}: 纯净明文基座，主要用于套用 CDN 或者挂载 Argo 复活甲。"
+    echo -e "  - ${green}Trojan-Reality${plain}: 老牌神级协议的隐身进化版，抗封锁能力极强。"
+    echo -e ""
+    echo -e "${red}⚠️ 2. NAT 服务器用户 (端口受限) 特别避坑提示：${plain}"
+    echo -e "  如果您的 VPS 是端口受限的小鸡，${red}绝对不要使用 [7] 一键大满贯功能！${plain}"
+    echo -e "  (因为大满贯采用全随机端口)。请使用 ${green}[1]-[5] 独立部署${plain}，并在提示时手动"
+    echo -e "  输入您的可用端口！或者直接使用 ${purple}[a] Argo 隧道${plain}，彻底无视本地端口限制！"
+    echo -e ""
+    echo -e "${yellow}🛡️ 3. 附加高级功能说明：${plain}"
+    echo -e "  - ${green}ACME 证书申请${plain}: 填入真实域名，申请成功后，Hys2 和 TUIC 会自动挂载。"
+    echo -e "  - ${green}BBR 狂暴加速${plain}: 强烈建议所有机器开启，免费提升全局网络吞吐量。"
+    echo -e "  - ${green}WARP 分流解锁${plain}: 遇到 ChatGPT 拒绝访问、Netflix 无法播放时开启。"
+    echo -e "  - ${green}Argo 隧道复活甲${plain}: IP 惨遭墙杀断网时的救命稻草，套上立马满血复活！"
+    echo -e "${cyan}======================================================================${plain}"
+    read -p "👉 阅毕，按回车键返回主菜单..."
+}
+
+# --- 主循环入口 ---
 while true; do
     show_dashboard
     echo -e "  ${green}1.${plain} ➕ 新增/覆写 VLESS-Reality"
@@ -844,9 +874,9 @@ while true; do
     echo -e "----------------------------------------------------------------------"
     echo -e "  ${cyan}8.${plain} 🖨️  ${green}一键提取全节点 (明文/Base64/二维码)${plain}"
     echo -e "  ${yellow}9.${plain} 🔄 OTA 热更新引擎        ${red}10.${plain} 🗑️  彻底粉碎卸载"
-    echo -e "  ${yellow}0.${plain} 🔙 退出终端"
+    echo -e "  ${blue}h.${plain} 📖 面板说明与避坑指南    ${yellow}0.${plain} 🔙 退出终端"
     echo -e "${cyan}======================================================================${plain}"
-    read -p "👉 执行指令 [0-10]: " choice
+    read -p "👉 执行指令 [0-10, h/b/w/a]: " choice
     case "$choice" in
         1) install_vless_reality; read -p "👉 按回车返回大屏..." ;;
         2) install_hysteria2; read -p "👉 按回车返回大屏..." ;;
@@ -861,6 +891,7 @@ while true; do
         8) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
         9) update_ota ;;
         10) uninstall_vne; read -p "👉 按回车退出..."; break ;;
+        h|H) show_help ;;
         0) break ;;
         *) echo -e "${red}❌ 无效输入！${plain}"; sleep 1 ;;
     esac
