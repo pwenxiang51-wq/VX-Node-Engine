@@ -838,6 +838,17 @@ function uninstall_vne() {
     systemctl stop vx-core.service vx-argo.service >/dev/null 2>&1
     systemctl disable vx-core.service vx-argo.service >/dev/null 2>&1
     
+    # 彻底卸载 Cloudflare WARP 官方客户端
+    if command -v warp-cli &> /dev/null; then
+        warp-cli disconnect >/dev/null 2>&1
+        if command -v apt-get &> /dev/null; then
+            apt-get purge -y cloudflare-warp >/dev/null 2>&1
+        else
+            yum remove -y cloudflare-warp >/dev/null 2>&1
+        fi
+        rm -rf /var/lib/cloudflare-warp
+    fi
+    
     # 彻底删除核心目录、守护进程文件、快捷指令
     rm -rf $CONF_DIR $BIN_FILE $SERVICE_FILE /etc/systemd/system/vx-argo.service /usr/local/bin/vx
     
@@ -848,7 +859,7 @@ function uninstall_vne() {
     sysctl -p >/dev/null 2>&1
     
     systemctl daemon-reload
-    echo -e "${green}✅ VX 核心、各协议节点、Argo 隧道及 BBR 注入已彻底挫骨扬灰！系统已恢复出厂纯净态。${plain}"
+    echo -e "${green}✅ VX 核心、各协议节点、Argo 隧道、WARP 及 BBR 注入已彻底挫骨扬灰！系统已恢复出厂纯净态。${plain}"
 }
 
 # ==================================================
