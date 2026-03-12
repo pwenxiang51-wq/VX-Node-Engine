@@ -71,6 +71,16 @@ bash <(curl -Ls https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/
 
 如果大佬觉得项目超赞，欢迎通过微信扫码请我喝杯冰美式，感激不尽！🚀
 
+<div align="center">
+    <img src="coffee.jpg" alt="Velox 赞赏码" width="350" />
+    <br />
+    <br />
+    <b>“ 感谢 velox 请喝咖啡！ ”</b>
+</div>
+
+<br />
+
+
 ![赞赏码](assets/donate.png)
 
 ---
