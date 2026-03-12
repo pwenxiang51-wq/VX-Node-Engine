@@ -779,6 +779,9 @@ function export_all_nodes() {
 }
 
 
+# ==================================================
+# 🗑️ 终极自毁程序: 彻底卸载与清理
+# ==================================================
 function uninstall_vne() {
     echo -e "${yellow}>>> 正在执行终极粉碎协议...${plain}"
     systemctl stop vx-core.service vx-argo.service >/dev/null 2>&1
@@ -787,8 +790,14 @@ function uninstall_vne() {
     # 彻底删除核心目录、守护进程文件、快捷指令
     rm -rf $CONF_DIR $BIN_FILE $SERVICE_FILE /etc/systemd/system/vx-argo.service /usr/local/bin/vx
     
+    # 彻底剥离 BBR 狂暴网络加速 (强制恢复系统默认内核)
+    sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+    sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+    sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
+    sysctl -p >/dev/null 2>&1
+    
     systemctl daemon-reload
-    echo -e "${green}✅ VX 核心、各协议节点、Argo 隧道守护进程已彻底挫骨扬灰！${plain}"
+    echo -e "${green}✅ VX 核心、各协议节点、Argo 隧道及 BBR 注入已彻底挫骨扬灰！系统已恢复出厂纯净态。${plain}"
 }
 
 while true; do
