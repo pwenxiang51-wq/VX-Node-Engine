@@ -527,6 +527,143 @@ function enable_warp() {
 
 
 # ==================================================
+# ☁️ 终极保命: Cloudflare Argo 隧道挂载 (开源防呆版)
+# ==================================================
+function enable_argo() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "           ☁️ 部署 Cloudflare Argo 隧道 (VMess-WS 复活甲)"
+    echo -e "${cyan}======================================================================${plain}"
+
+    # 1. 提取底层 VMess 核心参数
+    local VMESS_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
+    local VMESS_PATH=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .transport.path' "$JSON_FILE" 2>/dev/null)
+    local VMESS_UUID=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .users[0].uuid' "$JSON_FILE" 2>/dev/null)
+
+    if [[ -z "$VMESS_PORT" || "$VMESS_PORT" == "null" ]]; then
+        echo -e "${red}❌ 未检测到 VMess-WS 节点！Argo 必须依托 VMess 才能运行，请先部署大满贯！${plain}"
+        read -p "👉 按回车返回大屏..." && return
+    fi
+
+    # 2. 安装官方 Cloudflared 核心
+    if ! command -v cloudflared &> /dev/null; then
+        echo -e "${yellow}>>> [1/4] 正在拉取 Cloudflare Argo 官方核心组件...${plain}"
+        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/local/bin/cloudflared
+        chmod +x /usr/local/bin/cloudflared
+    fi
+
+    # 3. 智能双轨制选择 (小白 vs 极客)
+    echo -e "\n${yellow}>>> [2/4] 请选择 Argo 隧道运行模式：${plain}"
+    echo -e "  ${purple}1.${plain} 临时穿透模式 (系统自动分配随机域名，免配置，小白首选)"
+    echo -e "  ${green}2.${plain} 固定保活模式 (需配置 CF Zero Trust，绑定自有域名，极客推荐)"
+    echo ""
+    read -p "👉 请选择 [1/2] (直接回车默认选 1): " ARGO_MODE
+    ARGO_MODE=${ARGO_MODE:-1}
+
+    local ARGO_DOMAIN=""
+
+    if [[ "$ARGO_MODE" == "2" ]]; then
+        # ⚠️ 给开源用户的保姆级教程 UI ⚠️
+        clear
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "          🛡️ CF Zero Trust 固定隧道配置指南 (保姆级教程)"
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "如果您是第一次配置，请严格按照以下步骤在 Cloudflare 官网操作："
+        echo -e "1. 登录 CF 后台 -> 进入 Zero Trust -> Networks -> Tunnels"
+        echo -e "2. 点击 Create a tunnel -> 选择 Cloudflared -> 随便起个隧道名字"
+        echo -e "3. 页面会给出一串安装命令，请复制紧跟在 ${green}--token${plain} 后面的那串超长字符！"
+        echo -e "4. 点击 Next，在 Public Hostname 页面设置："
+        echo -e "   - Subdomain/Domain: 填您想绑定的域名 (例如: argo.yourdomain.com)"
+        echo -e "   - Service Type: ${green}HTTP${plain}"
+        echo -e "   - URL: ${green}127.0.0.1:${VMESS_PORT}${plain}  <-- (极其重要，请直接复制此地址)"
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "${yellow}提示: 如果您还没准备好，直接按回车键即可安全退出。${plain}\n"
+
+        read -p "👉 请粘贴您的 Cloudflare Tunnel Token: " ARGO_TOKEN
+        if [[ -z "$ARGO_TOKEN" ]]; then
+            echo -e "\n${red}已取消操作，安全返回主界面。${plain}"
+            sleep 1
+            return
+        fi
+
+        read -p "👉 请输入您刚才在 CF 后台绑定的固定域名 (如 argo.xxx.com): " ARGO_DOMAIN
+        if [[ -z "$ARGO_DOMAIN" ]]; then
+            echo -e "\n${red}❌ 域名不能为空，操作已取消！${plain}"
+            sleep 1
+            return
+        fi
+
+        echo -e "\n${yellow}>>> [3/4] 正在将 Token 注入系统守护进程...${plain}"
+        cat <<EOF > /etc/systemd/system/vx-argo.service
+[Unit]
+Description=Cloudflare Argo Tunnel (Fixed Token) for VeloX
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflared tunnel run --token $ARGO_TOKEN
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    else
+        echo -e "\n${yellow}>>> [3/4] 正在建立临时反向地下隧道...${plain}"
+        cat <<EOF > /etc/systemd/system/vx-argo.service
+[Unit]
+Description=Cloudflare Argo Tunnel (Temp) for VeloX
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflared tunnel --url http://127.0.0.1:$VMESS_PORT --no-autoupdate
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    fi
+
+    systemctl daemon-reload
+    systemctl restart vx-argo
+    systemctl enable vx-argo >/dev/null 2>&1
+
+    # 4. 临时模式的自动化域名抓取
+    if [[ "$ARGO_MODE" != "2" ]]; then
+        echo -e ">>> 正在等待 CF 边缘节点下发临时域名，请耐心等待 8 秒..."
+        sleep 8
+        ARGO_DOMAIN=$(journalctl -u vx-argo --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | head -n 1 | sed 's/https:\/\///')
+        
+        if [[ -z "$ARGO_DOMAIN" ]]; then
+            echo -e "${red}❌ 隧道域名获取失败！可能是服务器到 Cloudflare 的网络受阻。${plain}"
+            read -p "👉 按回车返回大屏..." && return
+        fi
+    fi
+
+    # 5. 生成终极节点链接
+    echo -e "${yellow}>>> [4/4] 正在锻造 Argo 终极复活节点...${plain}"
+    local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-Argo-复活甲🛡️" --arg add "$ARGO_DOMAIN" --arg port "443" --arg id "$VMESS_UUID" --arg net "ws" --arg host "$ARGO_DOMAIN" --arg path "$VMESS_PATH" --arg tls "tls" --arg sni "$ARGO_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+    local ARGO_LINK="vmess://$(echo -n "$VM_J" | base64 -w 0)"
+
+    # 无缝覆盖旧链接
+    sed -i '/VMess-Argo-复活甲/d' "$LINK_FILE" 2>/dev/null
+    echo "$ARGO_LINK" >> "$LINK_FILE"
+
+    echo -e "\n${green}🎉 Argo 隧道挂载成功！哪怕服务器 IP 被墙，此节点依然坚挺！${plain}"
+    if [[ "$ARGO_MODE" == "2" ]]; then
+        echo -e "${purple}🛡️ 当前模式: 固定隧道 (Zero Trust)${plain}"
+    else
+        echo -e "${purple}⏱️ 当前模式: 临时穿透 (trycloudflare)${plain}"
+    fi
+    echo -e "${cyan}🌐 专属防御域名: ${plain}${green}${ARGO_DOMAIN}${plain}"
+    read -p "👉 按回车返回大屏，按【8】即可提取这个复活甲节点..."
+}
+
+
+# ==================================================
 # 聚合提取中心
 # ==================================================
 function export_all_nodes() {
@@ -579,6 +716,7 @@ while true; do
     echo -e "  ${purple}7.${plain} 🚀 终极大招: 一键满血装载所有协议"
     echo -e "  ${green}b.${plain} ⚡ 底层调优: BBR 狂暴网络加速"
     echo -e "  ${green}w.${plain} 🛡️ 附加挂载: WARP 优选解锁 (Netflix/ChatGPT 等)"
+    echo -e "  ${purple}a.${plain} ☁️ 附加挂载: Argo 隧道防封复活甲 (基于 VMess)"
     echo -e "----------------------------------------------------------------------"
     echo -e "  ${cyan}8.${plain} 🖨️  ${green}一键提取全节点 (明文/Base64/二维码)${plain}"
     echo -e "  ${yellow}9.${plain} 🔄 OTA 热更新引擎       ${red}10.${plain} 🗑️  彻底粉碎卸载"
@@ -595,6 +733,7 @@ while true; do
         7) install_all_nodes ;;
         b|B) enable_bbr ;;
         w|W) enable_warp ;;
+        a|A) enable_argo ;;
         8) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
         9) update_vx ;;
         10) uninstall_vne; read -p "👉 按回车退出..."; break ;;
