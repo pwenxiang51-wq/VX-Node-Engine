@@ -62,7 +62,7 @@ function show_dashboard() {
         if jq -e '.inbounds[] | select(.tag == "tuic-in")' "$JSON_FILE" >/dev/null 2>&1; then
             TUIC_STAT="${green}[开启]${plain}"; TUIC_PORT=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE"); TUIC_SNI="自定义/自签"
         fi
-     if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
+        if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE" | sed 's/null/CDN直连/g')
         fi
 
@@ -87,7 +87,7 @@ function show_dashboard() {
     echo -e "${purple} ╚████╔╝ ███████╗███████╗╚██████╔╝██╔╝ ██╗${plain}"
     echo -e "${purple}  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝${plain}"
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "       🚀 Velox Node Engine (VX) 终极控制枢纽 V${VX_VERSION} 🚀       "
+    echo -e "       🚀 Velox Node Engine (VX) 终极控制枢纽 V${VX_VERSION} 🚀        "
     echo -e "${cyan}======================================================================${plain}"
     echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
     echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
@@ -106,9 +106,9 @@ function show_dashboard() {
     echo -e "🛡️  ${yellow}代理引擎矩阵 (Sing-box 状态: $SB_STAT):${plain}"
     echo -e "   $VL_STAT VLESS-Reality | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
     echo -e "   $HY2_STAT Hysteria-2    | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
-    echo -e "   $TUIC_STAT TUIC v5       | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
+    echo -e "   $TUIC_STAT TUIC v5        | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
     echo -e "   $VM_STAT VMess-WS      | 端口: ${cyan}$VM_PORT${plain} | 伪装: ${purple}$VM_SNI${plain}"
-   echo -e "   $TR_STAT Trojan-Reality| 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
+    echo -e "   $TR_STAT Trojan-Reality| 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
     echo -e "----------------------------------------------------------------------"
     echo -e "${cyan}======================================================================${plain}"
 }
@@ -126,6 +126,33 @@ function check_sys() {
             apt-get update -y >/dev/null 2>&1 && apt-get install -y jq qrencode curl wget openssl tar >/dev/null 2>&1
         else
             yum install -y epel-release >/dev/null 2>&1 && yum install -y jq qrencode curl wget openssl tar >/dev/null 2>&1
+        fi
+    fi
+}
+
+# --- 智能防火墙破壁者 (全平台极致兼容适配版) ---
+function open_port() {
+    local PORT=$1
+    # 1. 尝试 UFW (Ubuntu/Debian 常见)
+    if command -v ufw &> /dev/null; then
+        ufw allow $PORT/tcp >/dev/null 2>&1
+        ufw allow $PORT/udp >/dev/null 2>&1
+    fi
+    # 2. 尝试 Firewalld (CentOS/RHEL 常见)
+    if command -v firewall-cmd &> /dev/null; then
+        firewall-cmd --zone=public --add-port=$PORT/tcp --permanent >/dev/null 2>&1
+        firewall-cmd --zone=public --add-port=$PORT/udp --permanent >/dev/null 2>&1
+        firewall-cmd --reload >/dev/null 2>&1
+    fi
+    # 3. 兜底方案：原生 iptables (跨平台通用)
+    if command -v iptables &> /dev/null; then
+        iptables -I INPUT -p tcp --dport $PORT -j ACCEPT >/dev/null 2>&1
+        iptables -I INPUT -p udp --dport $PORT -j ACCEPT >/dev/null 2>&1
+        # 尝试保存，如果未安装保存插件也不报错，至少保证当次开机可用
+        if command -v netfilter-persistent &> /dev/null; then
+            netfilter-persistent save >/dev/null 2>&1
+        elif command -v service &> /dev/null && [[ -f /etc/redhat-release ]]; then
+            service iptables save >/dev/null 2>&1
         fi
     fi
 }
@@ -229,10 +256,11 @@ function apply_acme_cert() {
 
     echo -e "${yellow}>>> 正在安装证书到 VX 引擎核心目录...${plain}"
     mkdir -p $CERT_DIR
-    ~/.acme.sh/acme.sh --installcert -d ${REAL_DOMAIN} --fullchainpath $CERT_DIR/acme.crt --keypath $CERT_DIR/acme.key --ecc --force >/dev/null 2>&1
+    # 注入无感重载命令，证书续签自动重启 Sing-box (极致防呆)
+    ~/.acme.sh/acme.sh --installcert -d ${REAL_DOMAIN} --fullchainpath $CERT_DIR/acme.crt --keypath $CERT_DIR/acme.key --ecc --force --reloadcmd "systemctl restart vx-core.service" >/dev/null 2>&1
     echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt
     
-    echo -e "\n${green}✅ ACME 真实证书部署完成！${plain}"
+    echo -e "\n${green}✅ ACME 真实证书部署完成！系统将自动为您管理后续的十年续签。${plain}"
     echo -e "👉 ${yellow}提示: 安装 Hys2/TUIC/Trojan 时填入此域名，将自动接管真实证书！${plain}"
     read -p "👉 按回车返回大屏..."
 }
@@ -258,9 +286,10 @@ EOF
     jq 'del(.inbounds[] | select(.tag == "vless-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
 
+    open_port $LISTEN_PORT
     systemctl restart vx-core.service
     SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-VeloX"
-   sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null
+    sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
@@ -279,6 +308,7 @@ EOF
     jq 'del(.inbounds[] | select(.tag == "hy2-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
 
+    open_port $LISTEN_PORT
     systemctl restart vx-core.service
     SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&insecure=1#Hys2-VeloX"
     sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null
@@ -301,6 +331,7 @@ EOF
     jq 'del(.inbounds[] | select(.tag == "tuic-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
 
+    open_port $LISTEN_PORT
     systemctl restart vx-core.service
     SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX"
     sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null
@@ -323,6 +354,7 @@ EOF
     jq 'del(.inbounds[] | select(.tag == "vmess-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
 
+    open_port $LISTEN_PORT
     systemctl restart vx-core.service
     
     # 构建无 TLS 的纯净 VMess 链接
@@ -333,10 +365,10 @@ EOF
     echo -e "\n${green}✅ VMess-WS (纯净直连版) 装载完成！现在你可以直接把它套入 Cloudflare CDN。${plain}"
     echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
+
 function install_trojan_reality() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 Trojan-Reality (NPC进阶神级) 节点：${plain}"
-   # 5. Trojan-Reality 自定义逻辑
     read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
     read -p "👉 节点密码 (直接回车随机): " TROJAN_PASS; TROJAN_PASS=${TROJAN_PASS:-$TEMP_PASS}
     read -p "👉 伪装域名 (直接回车默认 apple.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
@@ -352,6 +384,7 @@ EOF
     jq 'del(.inbounds[] | select(.tag == "trojan-in"))' "$JSON_FILE" > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json > /tmp/vx_clean.json && mv /tmp/vx_clean.json "$JSON_FILE"
 
+    open_port $LISTEN_PORT
     systemctl restart vx-core.service
 
     SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
@@ -366,7 +399,7 @@ function install_all_nodes() {
     check_sys && install_core && init_json && get_smart_ip
     clear
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "          🚀 正在启动【大满贯】全协议一键全自动装载引擎 🚀"
+    echo -e "         🚀 正在启动【大满贯】全协议一键全自动装载引擎 🚀"
     echo -e "${cyan}======================================================================${plain}"
 
     # 1. 智能发证引导
@@ -399,34 +432,38 @@ function install_all_nodes() {
     local P1=$(shuf -i 10000-60000 -n 1); local U1=$TEMP_UUID; local K1=$($BIN_FILE generate reality-keypair); local PR1=$(echo "$K1" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU1=$(echo "$K1" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S1=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
     jq --argjson p "$P1" --arg u "$U1" --arg sni "apple.com" --arg pr "$PR1" --arg sid "$S1" '.inbounds += [{"type":"vless","tag":"vless-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
     echo "vless://${U1}@${SERVER_IP}:${P1}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=apple.com&fp=chrome&pbk=${PU1}&sid=${S1}&type=tcp&headerType=none#VLESS-Reality-VeloX" >> "$LINK_FILE"
+    open_port $P1
 
     echo -e "${yellow}>>> [2/5] 正在极速压入 Hysteria2...${plain}"
     local P2=$(shuf -i 10000-60000 -n 1); local PW2=$TEMP_PASS; generate_cert_dynamic "$COMMON_SNI" >/dev/null 2>&1
     jq --argjson p "$P2" --arg pw "$PW2" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"hysteria2","tag":"hy2-in","listen":"::","listen_port":$p,"users":[{"password":$pw}],"tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
     echo "hysteria2://${PW2}@${SERVER_IP}:${P2}/?sni=${COMMON_SNI}&alpn=h3&insecure=1#Hys2-VeloX" >> "$LINK_FILE"
+    open_port $P2
 
     echo -e "${yellow}>>> [3/5] 正在极速压入 TUIC v5...${plain}"
     local P3=$(shuf -i 10000-60000 -n 1); local U3=$TEMP_UUID; local PW3=$TEMP_PASS
     jq --argjson p "$P3" --arg u "$U3" --arg pw "$PW3" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"tuic","tag":"tuic-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"password":$pw}],"congestion_control":"bbr","tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
     echo "tuic://${U3}:${PW3}@${SERVER_IP}:${P3}/?sni=${COMMON_SNI}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX" >> "$LINK_FILE"
+    open_port $P3
 
     echo -e "${yellow}>>> [4/5] 正在极速压入 VMess-WS...${plain}"
     local P4=$(shuf -i 10000-60000 -n 1); local U4=$TEMP_UUID; local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
     jq --argjson p "$P4" --arg u "$U4" --arg w "$W4" '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w}}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
     local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-VeloX" --arg add "$SERVER_IP" --arg port "$P4" --arg id "$U4" --arg net "ws" --arg host "" --arg path "$W4" --arg tls "" --arg sni "" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
     echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
+    open_port $P4
 
     echo -e "${yellow}>>> [5/5] 正在极速压入 Trojan-Reality...${plain}"
     local P5=$(shuf -i 10000-60000 -n 1); local PW5=$TEMP_PASS; local K5=$($BIN_FILE generate reality-keypair); local PR5=$(echo "$K5" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU5=$(echo "$K5" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S5=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
     jq --argjson p "$P5" --arg pw "$PW5" --arg sni "apple.com" --arg pr "$PR5" --arg sid "$S5" '.inbounds += [{"type":"trojan","tag":"trojan-in","listen":"::","listen_port":$p,"users":[{"password":$pw}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
     echo "trojan://${PW5}@${SERVER_IP}:${P5}?security=reality&sni=apple.com&fp=chrome&pbk=${PU5}&sid=${S5}&type=tcp&headerType=none#Trojan-Reality-VeloX" >> "$LINK_FILE"
+    open_port $P5
 
     systemctl restart vx-core.service
-    echo -e "\n${green}✅ 大满贯全量装载完成！五大神级协议已全部就绪！${plain}"
+    echo -e "\n${green}✅ 大满贯全量装载完成！防火墙已被打穿，五大神级协议已全部就绪！${plain}"
     echo -e "👉 ${yellow}提示: 请按回车返回主菜单，直接按【8】提取所有节点链接！${plain}"
     read -p ""
 }
-
 
 # ==================================================
 # ⚡ 底层调优: BBR 狂暴网络加速
@@ -463,7 +500,6 @@ function enable_bbr() {
     fi
     read -p "👉 按回车返回大屏..."
 }
-
 
 # ==================================================
 # 🛡️ 附加挂载: WARP 智能优选解锁 (流媒体/AI 专线)
@@ -533,7 +569,6 @@ function enable_warp() {
     read -p "👉 按回车返回大屏..."
 }
 
-
 # ==================================================
 # ☁️ 终极保命: Cloudflare Argo 隧道挂载 (开源防呆版)
 # ==================================================
@@ -574,7 +609,7 @@ function enable_argo() {
         # ⚠️ 给开源用户的保姆级教程 UI ⚠️
         clear
         echo -e "${cyan}======================================================================${plain}"
-        echo -e "          🛡️ CF Zero Trust 固定隧道配置指南 (保姆级教程)"
+        echo -e "         🛡️ CF Zero Trust 固定隧道配置指南 (保姆级教程)"
         echo -e "${cyan}======================================================================${plain}"
         echo -e "如果您是第一次配置，请严格按照以下步骤在 Cloudflare 官网操作："
         echo -e "1. 登录 CF 后台 -> 进入 Zero Trust -> Networks -> Tunnels"
@@ -670,7 +705,6 @@ EOF
     read -p "👉 按回车返回大屏，按【8】即可提取这个复活甲节点..."
 }
 
-
 # ==================================================
 # 🔄 OTA 热更新引擎: 脚本与内核双轨升级
 # ==================================================
@@ -716,8 +750,7 @@ function update_ota() {
     else
         echo -e "\n${yellow}💡 发现新版本，正在为您热更新核心...${plain}"
         
-        # 下载最新内核 (自动适配 amd64)
-        # 智能识别架构，防止下错内核导致断网 (兼容 AMD/ARM)
+        # 下载最新内核 (自动适配 amd64/arm64)
         local ARCH_RAW=$(uname -m)
         case "${ARCH_RAW}" in
             x86_64) CPU_ARCH="amd64" ;;
@@ -729,7 +762,6 @@ function update_ota() {
         wget -q "$DL_URL" -O /tmp/sing-box.tar.gz
         if [[ -f /tmp/sing-box.tar.gz ]]; then
             tar -xzf /tmp/sing-box.tar.gz -C /tmp
-            # 停止服务，替换二进制，重启服务
             systemctl stop vx-core.service
             cp /tmp/sing-box-${LATEST_VER}-linux-${CPU_ARCH}/sing-box $BIN_FILE
             chmod +x $BIN_FILE
@@ -747,8 +779,6 @@ function update_ota() {
     read -p "👉 按回车返回大屏..."
 }
 
-
-
 # ==================================================
 # 聚合提取中心
 # ==================================================
@@ -761,7 +791,6 @@ function export_all_nodes() {
     fi
     
     echo -e "${yellow}>>> 📱 独立节点链接与二维码：${plain}"
-    # 逐行读取链接，每个链接单独打印并生成一个小二维码
     cat "$LINK_FILE" | while read line; do 
         PROTOCOL=$(echo "$line" | cut -d ':' -f 1 | tr 'a-z' 'A-Z')
         echo -e "\n${purple}【 $PROTOCOL 协议 】${plain}"
@@ -777,7 +806,6 @@ function export_all_nodes() {
     echo -e "${blue}${B64_LINKS}${plain}\n"
     echo -e "${cyan}=============================================================${plain}"
 }
-
 
 # ==================================================
 # 🗑️ 终极自毁程序: 彻底卸载与清理
@@ -815,7 +843,7 @@ while true; do
     echo -e "  ${purple}a.${plain} ☁️ 附加挂载: Argo 隧道防封复活甲 (基于 VMess)"
     echo -e "----------------------------------------------------------------------"
     echo -e "  ${cyan}8.${plain} 🖨️  ${green}一键提取全节点 (明文/Base64/二维码)${plain}"
-    echo -e "  ${yellow}9.${plain} 🔄 OTA 热更新引擎       ${red}10.${plain} 🗑️  彻底粉碎卸载"
+    echo -e "  ${yellow}9.${plain} 🔄 OTA 热更新引擎        ${red}10.${plain} 🗑️  彻底粉碎卸载"
     echo -e "  ${yellow}0.${plain} 🔙 退出终端"
     echo -e "${cyan}======================================================================${plain}"
     read -p "👉 执行指令 [0-10]: " choice
