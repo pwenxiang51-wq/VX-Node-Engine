@@ -62,12 +62,13 @@ function show_dashboard() {
         if jq -e '.inbounds[] | select(.tag == "tuic-in")' "$JSON_FILE" >/dev/null 2>&1; then
             TUIC_STAT="${green}[开启]${plain}"; TUIC_PORT=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE"); TUIC_SNI="自定义/自签"
         fi
-        if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
-            VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE")
+     if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE" | sed 's/null/CDN直连/g')
         fi
-       if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
-         TR_STAT="${green}[开启]${plain}"; TR_PORT=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .listen_port' "$JSON_FILE"); TR_SNI=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .tls.server_name' "$JSON_FILE")
-     fi
+
+        if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
+            TR_STAT="${green}[开启]${plain}"; TR_PORT=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .listen_port' "$JSON_FILE"); TR_SNI=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .tls.server_name' "$JSON_FILE")
+        fi
     fi
 
     # 极速无感检测版本更新 (1.5秒超时)
