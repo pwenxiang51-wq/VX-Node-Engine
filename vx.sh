@@ -637,7 +637,7 @@ function enable_warp() {
 }
 
 # ==================================================
-# ☁️ 终极保命: Cloudflare Argo 隧道挂载 (开源智能版)
+# ☁️ 终极保命: Cloudflare Argo 隧道挂载 (全架构无雷版)
 # ==================================================
 function enable_argo() {
     clear
@@ -645,7 +645,7 @@ function enable_argo() {
     echo -e "             ☁️ Argo 隧道 (VMess-WS 复活甲) 智能控制中枢"
     echo -e "${cyan}======================================================================${plain}"
 
-    # 🚀 [新增逻辑] 智能状态感知：检测 Argo 是否已在运行
+    # 🚀 智能状态感知：检测 Argo 是否已在运行
     if systemctl is-active --quiet vx-argo.service 2>/dev/null || [[ -f /etc/systemd/system/vx-argo.service ]]; then
         echo -e "${green}>>> 系统检测：当前 Argo 隧道复活甲已处于【部署/运行】状态！${plain}"
         read -p "❓ 是否要一键关闭并彻底拆除 Argo 隧道？(y/n) [默认 n]: " close_choice
@@ -666,7 +666,6 @@ function enable_argo() {
         return
     fi
 
-    # 🚀 下方为全新部署流程
     # 1. 提取底层 VMess 核心参数
     local VMESS_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
     local VMESS_PATH=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .transport.path' "$JSON_FILE" 2>/dev/null)
@@ -677,10 +676,21 @@ function enable_argo() {
         read -p "👉 按回车返回大屏..." && return
     fi
 
-    # 2. 安装官方 Cloudflared 核心
+    # 2. 安装官方 Cloudflared 核心 (👑 核心优化：全架构智能嗅探兼容)
     if ! command -v cloudflared &> /dev/null; then
         echo -e "${yellow}>>> [1/4] 正在拉取 Cloudflare Argo 官方核心组件...${plain}"
-        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/local/bin/cloudflared
+        local CPU_ARCH=$(uname -m)
+        local CF_ARCH="amd64"
+        if [[ "$CPU_ARCH" == "aarch64" || "$CPU_ARCH" == "arm64" ]]; then
+            CF_ARCH="arm64"
+        elif [[ "$CPU_ARCH" == "x86_64" ]]; then
+            CF_ARCH="amd64"
+        else
+            echo -e "${red}❌ 致命错误: 暂不支持当前系统架构 ($CPU_ARCH) 安装 Argo！${plain}"
+            read -p "👉 按回车返回大屏..." && return
+        fi
+        
+        wget -q "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" -O /usr/local/bin/cloudflared
         chmod +x /usr/local/bin/cloudflared
     fi
 
@@ -695,7 +705,6 @@ function enable_argo() {
     local ARGO_DOMAIN=""
 
     if [[ "$ARGO_MODE" == "2" ]]; then
-        # ⚠️ 给开源用户的保姆级教程 UI ⚠️
         clear
         echo -e "${cyan}======================================================================${plain}"
         echo -e "         🛡️ CF Zero Trust 固定隧道配置指南 (保姆级教程)"
@@ -712,6 +721,9 @@ function enable_argo() {
         echo -e "${yellow}提示: 如果您还没准备好，直接按回车键即可安全退出。${plain}\n"
 
         read -p "👉 请粘贴您的 Cloudflare Tunnel Token: " ARGO_TOKEN
+        # 👑 核心优化：强行物理除垢，去掉所有可能的空格、换行符
+        ARGO_TOKEN=$(echo "$ARGO_TOKEN" | tr -d ' ' | tr -d '\n' | tr -d '\r')
+        
         if [[ -z "$ARGO_TOKEN" ]]; then
             echo -e "\n${red}已取消操作，安全返回主界面。${plain}"
             sleep 1
@@ -719,6 +731,7 @@ function enable_argo() {
         fi
 
         read -p "👉 请输入您刚才在 CF 后台绑定的固定域名 (如 argo.xxx.com): " ARGO_DOMAIN
+        ARGO_DOMAIN=$(echo "$ARGO_DOMAIN" | tr -d ' ')
         if [[ -z "$ARGO_DOMAIN" ]]; then
             echo -e "\n${red}❌ 域名不能为空，操作已取消！${plain}"
             sleep 1
@@ -762,6 +775,17 @@ EOF
     systemctl daemon-reload
     systemctl restart vx-argo
     systemctl enable vx-argo >/dev/null 2>&1
+    
+    # 👑 核心优化：启动后睡 2 秒，如果进程报错死掉，立刻阻断并清理现场！
+    sleep 2
+    if ! systemctl is-active --quiet vx-argo.service; then
+        echo -e "\n${red}❌ Argo 隧道核心进程启动失败！${plain}"
+        echo -e "${yellow}原因排查：Token 错误、VPS 无法连接 CF 节点，或内存严重不足。${plain}"
+        systemctl stop vx-argo >/dev/null 2>&1
+        rm -f /etc/systemd/system/vx-argo.service
+        systemctl daemon-reload
+        read -p "👉 已安全回滚，按回车返回大屏..." && return
+    fi
 
     # 4. 临时模式的自动化域名抓取
     if [[ "$ARGO_MODE" != "2" ]]; then
@@ -770,18 +794,18 @@ EOF
         ARGO_DOMAIN=$(journalctl -u vx-argo --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | head -n 1 | sed 's/https:\/\///')
         
         if [[ -z "$ARGO_DOMAIN" ]]; then
-            echo -e "${red}❌ 隧道域名获取失败！可能是服务器到 Cloudflare 的网络受阻。${plain}"
-            read -p "👉 按回车返回大屏..." && return
+            echo -e "${red}❌ 隧道域名获取超时！可能是当前地区连接 trycloudflare 线路受阻。${plain}"
+            systemctl stop vx-argo >/dev/null 2>&1
+            rm -f /etc/systemd/system/vx-argo.service
+            read -p "👉 已安全中止操作，按回车返回大屏..." && return
         fi
     fi
 
-    # 5. 生成终极节点链接 (👑 小白救星：强注优选 IP 黑科技)
+    # 5. 生成终极节点链接
     echo -e "${yellow}>>> [4/4] 正在锻造 Argo 终极复活节点...${plain}"
     
-    # 【核心黑科技】强行将客户端地址替换为全网高通透 IP，无视国内 DNS 污染！
     local ARGO_MAGIC_ADDRESS="www.visa.com"
     
-    # 采用安全 jq 构建 JSON，确保字段不乱码
     local VM_J=$(jq -n -c \
         --arg v "2" \
         --arg ps "VMess-Argo-复活甲🛡️" \
@@ -797,7 +821,6 @@ EOF
         
     local ARGO_LINK="vmess://$(echo -n "$VM_J" | base64 -w 0)"
 
-    # 无缝覆盖旧链接
     sed -i '/VMess-Argo-复活甲/d' "$LINK_FILE" 2>/dev/null
     echo "$ARGO_LINK" >> "$LINK_FILE"
 
@@ -809,7 +832,6 @@ EOF
     fi
     echo -e "${cyan}🌐 专属防御域名: ${plain}${green}${ARGO_DOMAIN}${plain}"
     echo -e "${yellow}💡 极客提示: 节点已内置高通透免流 IP (www.visa.com) 以确保小白即连即用。${plain}"
-    echo -e "${yellow}   懂行的玩家可自行在客户端内将【地址】修改为更适合本地网络的 CF 优选 IP！${plain}"
     read -p "👉 按回车返回大屏，按【8】即可提取这个复活甲节点..."
 }
 
