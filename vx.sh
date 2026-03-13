@@ -956,15 +956,13 @@ function export_all_nodes() {
     echo -e "${yellow}>>> 📱 独立节点链接与二维码：${plain}"
     cat "$LINK_FILE" | while read line; do 
         PROTOCOL=$(echo "$line" | cut -d ':' -f 1 | tr 'a-z' 'A-Z')
-     if [[ "$PROTOCOL" == "VMESS" ]]; then
-            VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' /etc/velox_vne/config.json 2>/dev/null)
-            if [[ "$VM_SNI" == "null" || -z "$VM_SNI" ]]; then
-                VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .stream_setting.ws_settings.headers.Host' /etc/velox_vne/config.json 2>/dev/null)
-            fi
+   if [[ "$PROTOCOL" == "VMESS" ]]; then
+            # 暴力破解：直接把当前的 vmess 链接进行 Base64 解码，看里面的核心内容
+            VM_JSON=$(echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null)
             
-            if [[ "$VM_SNI" == *".trycloudflare.com"* ]]; then
+            if [[ "$VM_JSON" == *".trycloudflare.com"* ]]; then
                 echo -e "\n${purple}【 VMESS 协议 (Argo 临时隧道) 】${plain}"
-            elif [[ "$VM_SNI" != "null" && -n "$VM_SNI" && "$VM_SNI" != "apple.com" && "$VM_SNI" != "CDN直连" ]]; then
+            elif [[ "$VM_JSON" == *"Argo"* || "$VM_JSON" == *"argo"* ]]; then
                 echo -e "\n${purple}【 VMESS 协议 (Argo 固定隧道) 】${plain}"
             else
                 echo -e "\n${purple}【 VMESS 协议 (直连/常规) 】${plain}"
