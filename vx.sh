@@ -594,7 +594,7 @@ function enable_warp() {
         read -p "❓ 是否要一键关闭并剥离 WARP 路由规则？(y/n) [默认 n]: " close_choice
         if [[ "$close_choice" == [Yy] ]]; then
             echo -e "${yellow}>>> 正在剥离 Sing-box 神经元路由，恢复系统原生直连...${plain}"
-            jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
+           jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq
             
             if command -v warp-cli &> /dev/null; then
                 warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
@@ -648,17 +648,17 @@ function enable_warp() {
 
     # 确保 route 结构存在
     if ! jq -e '.route' "$JSON_FILE" >/dev/null; then
-        jq '. += {"route": {"rules": []}}' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
+        jq '. += {"route": {"rules": []}}' "$JSON_FILE" | atomic_jq
     fi
 
     # 清理历史规则
-    jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
+    jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq
 
     # 挂载 SOCKS5 出口
-    jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
+    jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" | atomic_jq
 
     # 核心分流规则 (已修复不规范的 Spotify URL Bug)
-    jq '.route.rules += [{"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","gemini.google.com","youtube.com","youtu.be","googlevideo.com","ytimg.com","netflix.com","netflix.net","nflximg.net","nflxvideo.net","nflxext.com","disneyplus.com","dssott.com","hulu.com","hbomax.com","max.com","tiktok.com","tiktokv.com","byteoversea.com","pixiv.net","piv.app","discord.com","discord.gg","scholar.google.com","sciencedirect.com"],"outbound":"warp-socks"}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
+    jq '.route.rules += [{"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","gemini.google.com","youtube.com","youtu.be","googlevideo.com","ytimg.com","netflix.com","netflix.net","nflximg.net","nflxvideo.net","nflxext.com","disneyplus.com","dssott.com","hulu.com","hbomax.com","max.com","tiktok.com","tiktokv.com","byteoversea.com","pixiv.net","piv.app","discord.com","discord.gg","scholar.google.com","sciencedirect.com"],"outbound":"warp-socks"}]' "$JSON_FILE" | atomic_jq
     # 4. 重启生效
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
     systemctl restart vx-core.service
