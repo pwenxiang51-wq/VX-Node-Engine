@@ -62,7 +62,6 @@ bash <(curl -Ls https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/
 ```
 或者
 
-```bash
 bash <(wget -qO- [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh))
 ```
 
