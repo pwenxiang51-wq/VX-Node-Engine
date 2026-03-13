@@ -900,14 +900,29 @@ function export_all_nodes() {
 }
 
 # ==================================================
-# 🗑️ 终极自毁程序: 彻底卸载与清理
+# 🗑️ 终极自毁程序: 彻底卸载与清理 (寸草不生版)
 # ==================================================
 function uninstall_vne() {
-    echo -e "${yellow}>>> 正在执行终极粉碎协议...${plain}"
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "             🗑️ 正在执行 Velox (VX) 引擎终极粉碎协议"
+    echo -e "${cyan}======================================================================${plain}"
+    
+    echo -e "${yellow}⚠️ 警告: 此操作将不可逆地删除本脚本产生的所有节点、证书、隧道及配置！${plain}"
+    read -p "❓ 确认要彻底卸载吗？(y/n) [默认 n]: " uninstall_choice
+    if [[ "$uninstall_choice" != [Yy] ]]; then
+        echo -e "${green}>>> 操作已取消，感谢继续使用！${plain}"
+        return
+    fi
+
+    echo -e "${yellow}>>> [1/5] 正在终止并拆除底层守护进程...${plain}"
     systemctl stop vx-core.service vx-argo.service >/dev/null 2>&1
     systemctl disable vx-core.service vx-argo.service >/dev/null 2>&1
-    
-    # 彻底卸载 Cloudflare WARP 官方客户端
+    rm -f $SERVICE_FILE /etc/systemd/system/vx-argo.service
+    systemctl daemon-reload
+
+    echo -e "${yellow}>>> [2/5] 正在安全剥离 WARP 与 Argo 核心组件...${plain}"
+    # 彻底卸载 Cloudflare WARP
     if command -v warp-cli &> /dev/null; then
         warp-cli disconnect >/dev/null 2>&1
         if command -v apt-get &> /dev/null; then
@@ -916,19 +931,31 @@ function uninstall_vne() {
             yum remove -y cloudflare-warp >/dev/null 2>&1
         fi
         rm -rf /var/lib/cloudflare-warp
+        rm -f /etc/apt/sources.list.d/cloudflare-client.list # 斩断更新源
     fi
-    
-    # 彻底删除核心目录、守护进程文件、快捷指令
-    rm -rf $CONF_DIR $BIN_FILE $SERVICE_FILE /etc/systemd/system/vx-argo.service /usr/local/bin/vx
-    
-    # 彻底剥离 BBR 狂暴网络加速 (强制恢复系统默认内核)
+    # 删除 Argo (Cloudflared) 二进制文件
+    rm -f /usr/local/bin/cloudflared
+
+    echo -e "${yellow}>>> [3/5] 正在注销 ACME 证书续签任务 (防流氓驻留)...${plain}"
+    if [[ -d "$HOME/.acme.sh" ]]; then
+        "$HOME/.acme.sh/acme.sh" --uninstall >/dev/null 2>&1
+        rm -rf "$HOME/.acme.sh"
+    fi
+
+    echo -e "${yellow}>>> [4/5] 正在还原系统网络内核 (剥离 BBR 参数)...${plain}"
     sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
     sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
     sysctl -p >/dev/null 2>&1
-    
-    systemctl daemon-reload
-    echo -e "${green}✅ VX 核心、各协议节点、Argo 隧道、WARP 及 BBR 注入已彻底挫骨扬灰！系统已恢复出厂纯净态。${plain}"
+
+    echo -e "${yellow}>>> [5/5] 正在粉碎配置数据与环境变量...${plain}"
+    rm -rf $CONF_DIR
+    rm -f $BIN_FILE
+    rm -f /usr/local/bin/vx
+
+    echo -e "\n${green}✅ 卸载完毕！VX 核心、各协议节点、隧道、证书、源文件已彻底挫骨扬灰！系统已恢复至出厂纯净态。${plain}"
+    echo -e "${cyan}💡 山高水长，江湖再见！${plain}"
+    exit 0
 }
 
 # ==================================================
