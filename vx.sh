@@ -144,13 +144,20 @@ fi
 function check_sys() {
     mkdir -p "$CONF_DIR"
     touch "$LINK_FILE"
-    if ! command -v jq &> /dev/null || ! command -v qrencode &> /dev/null; then
-        echo -e "${cyan}>>> 正在全自动补全系统依赖 (jq, qrencode, openssl)...${plain}"
+    # === 🚀 自动化环境自检：补全所有极客组件 ===
+    local NEED_PACKAGES=(jq qrencode curl wget openssl tar)
+    local MISSING_PACKAGES=()
+    for pkg in "${NEED_PACKAGES[@]}"; do
+        if ! command -v "$pkg" &>/dev/null; then MISSING_PACKAGES+=("$pkg"); fi
+    done
+
+    if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
+        echo -e "${cyan}>>> 正在全自动补全系统依赖 (${MISSING_PACKAGES[*]})...${plain}"
         [[ -f /etc/os-release ]] && source /etc/os-release
         if [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
-            apt-get update -y >/dev/null 2>&1 && apt-get install -y jq qrencode curl wget openssl tar >/dev/null 2>&1
+            apt-get update -y >/dev/null 2>&1 && apt-get install -y "${MISSING_PACKAGES[@]}" >/dev/null 2>&1
         else
-            yum install -y epel-release >/dev/null 2>&1 && yum install -y jq qrencode curl wget openssl tar >/dev/null 2>&1
+            yum install -y epel-release >/dev/null 2>&1 && yum install -y "${MISSING_PACKAGES[@]}" >/dev/null 2>&1
         fi
     fi
 }
