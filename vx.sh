@@ -956,7 +956,22 @@ function export_all_nodes() {
     echo -e "${yellow}>>> 📱 独立节点链接与二维码：${plain}"
     cat "$LINK_FILE" | while read line; do 
         PROTOCOL=$(echo "$line" | cut -d ':' -f 1 | tr 'a-z' 'A-Z')
-        echo -e "\n${purple}【 $PROTOCOL 协议 】${plain}"
+     if [[ "$PROTOCOL" == "VMESS" ]]; then
+            VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' /etc/velox_vne/config.json 2>/dev/null)
+            if [[ "$VM_SNI" == "null" || -z "$VM_SNI" ]]; then
+                VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .stream_setting.ws_settings.headers.Host' /etc/velox_vne/config.json 2>/dev/null)
+            fi
+            
+            if [[ "$VM_SNI" == *".trycloudflare.com"* ]]; then
+                echo -e "\n${purple}【 VMESS 协议 (Argo 临时隧道) 】${plain}"
+            elif [[ "$VM_SNI" != "null" && -n "$VM_SNI" && "$VM_SNI" != "apple.com" && "$VM_SNI" != "CDN直连" ]]; then
+                echo -e "\n${purple}【 VMESS 协议 (Argo 固定隧道) 】${plain}"
+            else
+                echo -e "\n${purple}【 VMESS 协议 (直连/常规) 】${plain}"
+            fi
+        else
+            echo -e "\n${purple}【 $PROTOCOL 协议 】${plain}"
+        fi
       echo -e "${green}🔗 分享链接【双击下方链接快速纯净复制】:${plain}"
         echo -e "${yellow}${line}${plain}\n"
         echo -e "📱 专属节点二维码:"
