@@ -6,7 +6,7 @@
 
 
 export LANG=en_US.UTF-8
-set -euo pipefail
+
 # === 🛡️ 零依赖原子 JSON 写入引擎 (10/10 满分防写死) ===
 atomic_jq() {
     local tmp="${JSON_FILE}.tmp"
