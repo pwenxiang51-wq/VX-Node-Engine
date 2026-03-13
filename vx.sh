@@ -488,9 +488,9 @@ function install_all_nodes() {
     # 统一提前调用一次证书生成逻辑（真实/自签），避免后续重复调用或遗漏
     generate_cert_dynamic "$COMMON_SNI" >/dev/null 2>&1
 
-    # 3. 彻底核爆清空历史数据
+   # 3. 彻底核爆清空历史数据
     > "$LINK_FILE"
-    echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . > "$JSON_FILE"
+    echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
 
     # 4. 端口隔离生成池：确保大满贯五协议端口绝对不冲突！
     local BASE_PORTS=($(shuf -i 10000-50000 -n 5 | sort -u))
