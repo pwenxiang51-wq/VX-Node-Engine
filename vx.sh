@@ -53,10 +53,16 @@ function show_dashboard() {
         ACME_STAT="${green}已部署 ✅${plain} [${purple}${ACME_DOMAIN}${plain}]"
     fi
 
-    WARP_STAT="${red}未开启 ❌${plain}"
-    if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
-        WARP_STAT="${green}已激活 ✅${plain} (SOCKS5 分流解锁)"
+ WARP_STAT="${red}未开启 ❌${plain}"
+if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+    # === 🚀 触发物理探针：极速获取 WARP 真实 IP (超时 1.5 秒防卡死) ===
+    WARP_CHECK_IP=$(curl -s --max-time 1.5 -x socks5h://127.0.0.1:40000 ipinfo.io/ip 2>/dev/null)
+    if [[ -n "$WARP_CHECK_IP" ]]; then
+        WARP_STAT="${green}已激活 ✅${plain} (SOCKS5 分流解锁) ${cyan}➡️ [IP: ${WARP_CHECK_IP}]${plain}"
+    else
+        WARP_STAT="${green}已激活 ✅${plain} (SOCKS5 分流解锁) ${red}➡️ [IP获取超时/连接异常]${plain}"
     fi
+fi
 
     ARGO_STAT="${red}未开启 ❌${plain}"
     if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
@@ -525,19 +531,41 @@ function enable_bbr() {
 }
 
 # ==================================================
-# 🛡️ 附加挂载: WARP 智能优选解锁 (流媒体/AI 专线)
+# 🛡️ 附加挂载: WARP 智能优选解锁 (支持一键开/关与 IP 探针)
 # ==================================================
 function enable_warp() {
     clear
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "         🛡️ 部署 Cloudflare WARP 官方客户端 (安全 SOCKS5 分流模式)"
+    echo -e "         🛡️ WARP 智能优选解锁引擎 (流媒体/AI 专线) 控制中心"
     echo -e "${cyan}======================================================================${plain}"
 
+    # 🚀 [新增逻辑] 智能状态感知：检测是否已经开启 WARP
+    if jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        echo -e "${green}>>> 系统检测：当前 WARP 智能分流已处于【运行中】状态！${plain}"
+        read -p "❓ 是否要一键关闭并剥离 WARP 路由规则？(y/n) [默认 n]: " close_choice
+        if [[ "$close_choice" == [Yy] ]]; then
+            echo -e "${yellow}>>> 正在剥离 Sing-box 神经元路由，恢复系统原生直连...${plain}"
+            jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
+            
+            if command -v warp-cli &> /dev/null; then
+                warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
+            fi
+            
+            systemctl restart vx-core.service
+            echo -e "${green}✅ WARP 智能分流已彻底关闭，全站流量已恢复原生 IP！${plain}"
+        else
+            echo -e "${green}>>> 操作已取消，WARP 护盾继续为您护航。${plain}"
+        fi
+        read -p "👉 按回车返回大屏..."
+        return
+    fi
+
+    # 🚀 下方为开启流程
     # 1. 安全安装官方客户端
     if ! command -v warp-cli &> /dev/null; then
         echo -e "${yellow}>>> [1/4] 正在安全拉取 Cloudflare 官方组件 (不影响系统网络)...${plain}"
         apt-get update -y >/dev/null 2>&1
-        apt-get install -y curl gnupg lsb-release >/dev/null 2>&1
+        apt-get install -y curl gnupg lsb-release jq >/dev/null 2>&1
         curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
         echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list >/dev/null
         apt-get update -y >/dev/null 2>&1
@@ -548,7 +576,6 @@ function enable_warp() {
 
     # 2. 隔离化配置 (绝对防失联)
     echo -e "${yellow}>>> [2/4] 正在建立本地 SOCKS5 安全隔离隧道...${plain}"
-    # 强制设置为 Proxy 模式，绝对不碰系统全局路由
     warp-cli --accept-tos registration new >/dev/null 2>&1 || warp-cli registration new >/dev/null 2>&1
     warp-cli --accept-tos mode proxy >/dev/null 2>&1 || warp-cli mode proxy >/dev/null 2>&1
     warp-cli --accept-tos proxy port 40000 >/dev/null 2>&1 || warp-cli proxy port 40000 >/dev/null 2>&1
@@ -557,11 +584,13 @@ function enable_warp() {
     echo -e ">>> 正在等待隧道连通，请稍候 5 秒..."
     sleep 5
 
-    if curl -sx socks5h://127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace | grep -q "warp="; then
-        echo -e "${green}✅ WARP 隔离通道建立成功！(本地监听端口: 40000)${plain}"
+    # 🚀 [新增逻辑] 物理探针极速抓取 IP
+    WARP_IP=$(curl -s --max-time 3 -x socks5h://127.0.0.1:40000 ipinfo.io/ip 2>/dev/null)
+    if [[ -n "$WARP_IP" ]]; then
+        echo -e "${green}✅ WARP 隔离通道建立成功！(监听端口: 40000 | 成功套取防封 IP: ${cyan}${WARP_IP}${green})${plain}"
     else
-        echo -e "${red}❌ WARP 通道建立失败！这可能是由于当前 VPS 架构受限 (如部分 LXC/OpenVZ 架构)。${plain}"
-        echo -e "${yellow}提示: 不影响核心节点运行，按回车返回大屏...${plain}"
+        echo -e "${red}❌ WARP 通道建立失败或响应超时！这可能是由于当前 VPS 架构受限。${plain}"
+        echo -e "${yellow}提示: 核心代理服务未受影响，按回车返回大屏...${plain}"
         read -p "" && return
     fi
 
@@ -579,9 +608,8 @@ function enable_warp() {
     # 挂载 SOCKS5 出口
     jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
 
-    # 核心分流规则：收录全网最严苛的流媒体与 AI 域名
-    # 包括: ChatGPT, Claude, Gemini, Netflix, Disney+, Spotify, Hulu, HBO 等
-    jq '.route.rules += [{"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","gemini.google.com","netflix.com","netflix.net","nflximg.net","nflxvideo.net","nflxext.com","disneyplus.com","dssott.com","spotify.com","hulu.com","hbomax.com","max.com"],"outbound":"warp-socks"}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
+    # 核心分流规则 (已修复不规范的 Spotify URL Bug)
+    jq '.route.rules += [{"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","gemini.google.com","netflix.com","netflix.net","nflximg.net","nflxvideo.net","nflxext.com","disneyplus.com","dssott.com","googleusercontent.com","spotify.com","hulu.com","hbomax.com","max.com"],"outbound":"warp-socks"}]' "$JSON_FILE" > /tmp/vx.json && mv /tmp/vx.json "$JSON_FILE"
 
     # 4. 重启生效
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
