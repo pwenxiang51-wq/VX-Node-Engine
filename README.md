@@ -63,10 +63,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/
 或者
 
 bash <(wget -qO- [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh))
-
 ```
 
 ---
+
 
 > 💡 **极简召唤提示**：安装完成后，以后在任何目录只需输入 `vx` 即可瞬间唤醒交互监控大屏！
 
