@@ -1125,7 +1125,7 @@ while true; do
     echo -e "----------------------------------------------------------------------"
     echo -e "  ${cyan}8.${plain} 🖨️  一键提取全节点 (明文/Base64/二维码)"
     echo -e "  ${cyan}9.${plain} 🔄 OTA 热更新引擎        ${cyan}10.${plain} 🗑️  ${red}彻底粉碎卸载${plain}"
-    echo -e "  ${cyan}t.${plain} 📺 流媒体/AI解锁测试      ${cyan}0.${plain}"
+    echo -e "  ${cyan}t.${plain} 📺 流媒体/AI解锁测试"
     echo -e "  ${cyan}h.${plain} 📖 面板说明与避坑指南    ${cyan}0.${plain} 🔙 退出终端"
     echo -e "${cyan}======================================================================${plain}"
     read -p "👉 执行指令 [0-10, b/w/a/t/h]: " choice
