@@ -659,7 +659,7 @@ function enable_warp() {
     jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" | atomic_jq
 
     # 核心分流规则 (已修复不规范的 Spotify URL Bug)
-    jq '.route.rules += [{"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","youtube.com","youtu.be","googlevideo.com","ytimg.com","netflix.com","netflix.net","nflximg.net","nflxvideo.net","nflxext.com","disneyplus.com","dssott.com","hulu.com","hbomax.com","max.com","dazn.com","dazndn.com","amazon.com","primevideo.com","spotify.com","spotifycdn.com","scdn.co","tiktok.com","tiktokv.com","byteoversea.com","instagram.com","cdninstagram.com","reddit.com","redditmedia.com","redditstatic.com","discord.com","discord.gg","pixiv.net","piv.app","bing.com","wikipedia.org","wikimedia.org","scholar.google.com","sciencedirect.com"],"outbound":"warp-socks"}]' "$JSON_FILE" | atomic_jq
+    jq '.route.rules = [{"outbound":"warp-socks"}]' "$JSON_FILE" | atomic_jq
     # 4. 重启生效
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
     systemctl restart vx-core.service
