@@ -1084,6 +1084,30 @@ function show_help() {
     read -p "👉 阅毕，按回车键返回主菜单..."
 }
 
+# ==================================================
+# 📺 流媒体与 AI 智能测速中心
+# ==================================================
+function test_media_unlock() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "                 📺 流媒体与 AI 解锁终极检测中心"
+    echo -e "${cyan}======================================================================${plain}"
+    
+    # 智能判断：检测是否已经挂载了 WARP
+    if jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        echo -e "${green}>>> 检测到 WARP 护盾已开启！正在通过底层 40000 端口进行深度穿透检测...${plain}"
+        echo -e "${yellow}💡 提示: 测速脚本正在拉取中，大约需要 1-2 分钟，请耐心等待。${plain}\n"
+        ALL_PROXY=socks5h://127.0.0.1:40000 bash <(curl -x socks5h://127.0.0.1:40000 -sL https://github.com/lmc999/RegionRestrictionCheck/raw/main/check.sh)
+    else
+        echo -e "${yellow}>>> 检测到当前为原机直连状态，正在测速原生 IP 解锁能力...${plain}\n"
+        bash <(curl -sL https://github.com/lmc999/RegionRestrictionCheck/raw/main/check.sh)
+    fi
+    
+    echo -e "\n${cyan}======================================================================${plain}"
+    read -p "👉 测试完毕！按回车键返回大屏..."
+}
+
+
 # --- 主循环入口 ---
 while true; do
     show_dashboard
@@ -1101,6 +1125,7 @@ while true; do
     echo -e "----------------------------------------------------------------------"
     echo -e "  ${cyan}8.${plain} 🖨️  一键提取全节点 (明文/Base64/二维码)"
     echo -e "  ${cyan}9.${plain} 🔄 OTA 热更新引擎        ${cyan}10.${plain} 🗑️  ${red}彻底粉碎卸载${plain}"
+    echo -e "  ${cyan}t.${plain} 📺 流媒体/AI解锁测试      ${cyan}0.${plain}
     echo -e "  ${cyan}h.${plain} 📖 面板说明与避坑指南    ${cyan}0.${plain} 🔙 退出终端"
     echo -e "${cyan}======================================================================${plain}"
     read -p "👉 执行指令 [0-10, h/b/w/a]: " choice
@@ -1115,6 +1140,7 @@ while true; do
         b|B) enable_bbr ;;
         w|W) enable_warp ;;
         a|A) enable_argo ;;
+        t|T) test_media_unlock ;;  
         8) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
         9) update_ota ;;
         10) uninstall_vne; read -p "👉 按回车退出..."; break ;;
