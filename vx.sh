@@ -837,7 +837,7 @@ EOF
     if [[ "$ARGO_MODE" != "2" ]]; then
         echo -e ">>> 正在等待 CF 边缘节点下发临时域名，请耐心等待 8 秒..."
         sleep 8
-        ARGO_DOMAIN=$(journalctl -u vx-argo --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | head -n 1 | sed 's/https:\/\///')
+       ARGO_DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
         
         if [[ -z "$ARGO_DOMAIN" ]]; then
             echo -e "${red}❌ 隧道域名获取超时！可能是当前地区连接 trycloudflare 线路受阻。${plain}"
