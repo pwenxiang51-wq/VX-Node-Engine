@@ -412,7 +412,7 @@ function install_vmess_ws() {
 
     # 移除了自签证书，改为纯净 WS 监听
     cat << EOF > /tmp/vx_tmp.json
-{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"}}
+{"type":"vmess","tag":"vmess-in","listen":"0.0.0.0","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"}}
 EOF
     jq 'del(.inbounds[] | select(.tag == "vmess-in"))' "$JSON_FILE" | atomic_jq
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json | atomic_jq
