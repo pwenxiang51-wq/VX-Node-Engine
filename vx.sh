@@ -67,6 +67,14 @@ function show_dashboard() {
         ACME_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
         ACME_STAT="${green}已部署 ✅${plain} [${purple}${ACME_DOMAIN}${plain}]"
     fi
+    
+    SUB_STAT="${red}未生成 ❌${plain}"
+    if systemctl is-active --quiet vx-sub.service 2>/dev/null; then
+        local S_PORT=$(cat "$CONF_DIR/sub_port.txt" 2>/dev/null)
+        local S_PATH=$(cat "$CONF_DIR/sub_path.txt" 2>/dev/null)
+        get_smart_ip
+        SUB_STAT="${green}运行中 ✅${plain}\n   🔗 专属订阅: ${yellow}http://${SERVER_IP}:${S_PORT}/${S_PATH}/vx_sub${plain}"
+    fi
 
  WARP_STAT="${red}未开启 ❌${plain}"
 if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
@@ -139,6 +147,7 @@ fi
     echo -e "   ACME 证书: $ACME_STAT"
     echo -e "   WARP 解锁: $WARP_STAT"
     echo -e "   Argo 隧道: $ARGO_STAT"
+    echo -e "   动态订阅 : $SUB_STAT"
     echo -e "----------------------------------------------------------------------"
     echo -e "🛡️  ${yellow}代理引擎矩阵 (Sing-box 状态: $SB_STAT):${plain}"
     echo -e "  $VL_STAT VLESS-Reality | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
