@@ -1,13 +1,12 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V4.3.1 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V4.3.2 (终极防弹装甲版：五大协议 + 智能双栈 + 动态订阅)
 # =======================================================
-
 
 export LANG=en_US.UTF-8
 
-# === 🛡️ 零依赖原子 JSON 写入引擎 (10/10 满分防写死) ===
+# === 🛡️ 零依赖原子 JSON 写入引擎 ===
 atomic_jq() {
     local tmp="${JSON_FILE}.tmp"
     cat > "$tmp"
@@ -28,8 +27,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="4.3.1"
-
+VX_VERSION="4.3.2"
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
 
@@ -72,7 +70,7 @@ function show_dashboard() {
         ACME_STAT="${green}已部署 ✅${plain} [${purple}${ACME_DOMAIN}${plain}]"
     fi
     
-   # === 👇 新增：超轻量订阅引擎探测 👇 ===
+    # === 超轻量订阅引擎探测 ===
     SUB_STAT="${red}未生成 ❌${plain}"
     if systemctl is-active --quiet vx-sub.service 2>/dev/null; then
         local S_PORT=$(cat "$CONF_DIR/sub_port.txt" 2>/dev/null)
@@ -88,18 +86,17 @@ function show_dashboard() {
             SUB_STAT="${green}运行中 ✅${plain}\n   🔗 专属订阅: ${yellow}http://${SERVER_IP}:${S_PORT}/${S_PATH}/vx_sub${plain}"
         fi
     fi
-    # === 👆 新增结束 👆 ===
 
- WARP_STAT="${red}未开启 ❌${plain}"
-if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
-    # === 🚀 触发物理探针：极速获取 WARP 真实 IP (超时 1.5 秒防卡死) ===
-    WARP_CHECK_IP=$(curl -s --max-time 1.5 -x socks5h://127.0.0.1:40000 ipinfo.io/ip 2>/dev/null)
-    if [[ -n "$WARP_CHECK_IP" ]]; then
-        WARP_STAT="${green}已激活 ✅${plain} (SOCKS5 分流解锁) ${cyan}➡️ [IP: ${WARP_CHECK_IP}]${plain}"
-    else
-        WARP_STAT="${green}已激活 ✅${plain} (SOCKS5 分流解锁) ${red}➡️ [IP获取超时/连接异常]${plain}"
+    WARP_STAT="${red}未开启 ❌${plain}"
+    if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        # === 🚀 触发物理探针：极速获取 WARP 真实 IP (超时 1.5 秒防卡死) ===
+        WARP_CHECK_IP=$(curl -s --max-time 1.5 -x socks5h://127.0.0.1:40000 ipinfo.io/ip 2>/dev/null)
+        if [[ -n "$WARP_CHECK_IP" ]]; then
+            WARP_STAT="${green}已激活 ✅${plain} (SOCKS5 分流解锁) ${cyan}➡️ [IP: ${WARP_CHECK_IP}]${plain}"
+        else
+            WARP_STAT="${green}已激活 ✅${plain} (SOCKS5 分流解锁) ${red}➡️ [IP获取超时/连接异常]${plain}"
+        fi
     fi
-fi
 
     ARGO_STAT="${red}未开启 ❌${plain}"
     if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
@@ -119,14 +116,13 @@ fi
         if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE" | sed 's/null/CDN直连/g')
         fi
-
         if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
             TR_STAT="${green}[开启]${plain}"; TR_PORT=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .listen_port' "$JSON_FILE"); TR_SNI=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .tls.server_name' "$JSON_FILE")
         fi
     fi
 
     # 极速无感检测版本更新 (1.5秒超时)
-  REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
+    REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
     UPDATE_MSG=""
     if [[ -n "$REMOTE_VER" && "$REMOTE_VER" != "$VX_VERSION" ]]; then
         UPDATE_MSG="${yellow}🔔 发现新版 v${REMOTE_VER} (请按 9 升级)${plain}"
@@ -147,7 +143,6 @@ fi
     echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
     echo -e " ⚡ 更新状态：$UPDATE_MSG"
     echo -e "${cyan}======================================================================${plain}"
-    # 👆👆👆 ------------------------ 👆👆👆
     echo -e "⚙️  ${yellow}系统核心状态:${plain}"
     echo -e "   系统版本: ${blue}$OS_INFO${plain} | 架构: ${blue}$ARCH${plain}"
     echo -e "   内核版本: ${blue}$KERNEL_VER${plain} | 拥塞控制: ${green}${BBR_STAT^^}${plain}"
@@ -179,8 +174,8 @@ fi
 function check_sys() {
     mkdir -p "$CONF_DIR"
     touch "$LINK_FILE"
-    # === 🚀 自动化环境自检：补全所有极客组件 ===
-    local NEED_PACKAGES=(jq qrencode curl wget openssl tar busybox)
+    # === 🚀 自动化环境自检：补全所有极客组件，新增 socat 支撑 HTTPS ===
+    local NEED_PACKAGES=(jq qrencode curl wget openssl tar busybox socat)
     local MISSING_PACKAGES=()
     for pkg in "${NEED_PACKAGES[@]}"; do
         if ! command -v "$pkg" &>/dev/null; then MISSING_PACKAGES+=("$pkg"); fi
@@ -200,23 +195,19 @@ function check_sys() {
 # --- 智能防火墙破壁者 (全平台极致兼容适配版) ---
 function open_port() {
     local PORT=$1
-    # 1. 尝试 UFW (Ubuntu/Debian 常见)
     if command -v ufw &> /dev/null; then
         ufw allow $PORT/tcp >/dev/null 2>&1
         ufw allow $PORT/udp >/dev/null 2>&1
     fi
-    # 2. 尝试 Firewalld (CentOS/RHEL 常见)
     if command -v firewall-cmd &> /dev/null; then
         firewall-cmd --zone=public --add-port=$PORT/tcp --permanent >/dev/null 2>&1
         firewall-cmd --zone=public --add-port=$PORT/udp --permanent >/dev/null 2>&1
         firewall-cmd --reload >/dev/null 2>&1
     fi
-   # 3. 兜底方案：原生 iptables (跨平台通用)
     if command -v iptables &> /dev/null; then
         # 智能侦测拦截：无规则才插入，拒绝垃圾堆叠
         iptables -C INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport $PORT -j ACCEPT >/dev/null 2>&1
         iptables -C INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport $PORT -j ACCEPT >/dev/null 2>&1
-        # 尝试保存，如果未安装保存插件也不报错，至少保证当次开机可用
         if command -v netfilter-persistent &> /dev/null; then
             netfilter-persistent save >/dev/null 2>&1
         elif command -v service &> /dev/null && [[ -f /etc/redhat-release ]]; then
@@ -235,7 +226,6 @@ function install_core() {
     if [[ ! -f "$BIN_FILE" ]]; then
         echo -e "${yellow}>>> 正在拉取 Sing-box 内核...${plain}"
         LATEST=$(curl -sL https://data.jsdelivr.com/v1/package/gh/SagerNet/sing-box | jq -r '.versions | map(select(test("alpha|beta|rc") | not)) | .[0]')
-        # 🚀 [优化] 自动识别架构，支持 amd64 和 arm64 (全平台适配)
         local CPU_ARCH=$(uname -m)
         local SB_ARCH="amd64"
         [[ "$CPU_ARCH" == "aarch64" || "$CPU_ARCH" == "arm64" ]] && SB_ARCH="arm64"
@@ -243,7 +233,6 @@ function install_core() {
         echo -e "${yellow}>>> 正在从官方源拉取 Sing-box v${LATEST} (${SB_ARCH})...${plain}"
         wget -qO sb.tar.gz "https://github.com/SagerNet/sing-box/releases/download/v${LATEST}/sing-box-${LATEST}-linux-${SB_ARCH}.tar.gz"
         
-        # 🚀 [新增质检] 检查文件大小，防止下到空文件或 404 页面
         if [[ ! -s sb.tar.gz ]]; then
             echo -e "${red}❌ 致命错误: 内核下载失败！请检查服务器网络或 GitHub 连通性。${plain}"
             rm -f sb.tar.gz && return 1
@@ -273,12 +262,11 @@ function get_smart_ip() {
     if [[ -n "$IPV4_TMP" ]]; then
         SERVER_IP="$IPV4_TMP"
     elif [[ -n "$IPV6_TMP" ]]; then
-        SERVER_IP="[$IPV6_TMP]" # 纯 IPv6 环境自动加括号以符合 URL 规范
+        SERVER_IP="[$IPV6_TMP]"
     else
         SERVER_IP="127.0.0.1"
     fi
 }
-
 
 # ==================================================
 # 📡 动态订阅防盗分发引擎 (极致兼容 & 自动 HTTPS 版)
@@ -320,7 +308,6 @@ function update_sub() {
         echo "" > "$TARGET_DIR/vx_sub"
     fi
 
-    # --- 1. 启动基础 HTTP 服务 ---
     if ! systemctl is-active --quiet vx-sub.service 2>/dev/null; then
         local BB_PATH=$(command -v busybox)
         cat <<EOF > /etc/systemd/system/vx-sub.service
@@ -341,12 +328,10 @@ EOF
         open_port $SUB_PORT
     fi
 
-    # --- 2. 启动 HTTPS 加密装甲 (智能识别 ACME 证书) ---
     if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme.key" ]]; then
-        local HTTPS_PORT=$((SUB_PORT + 1)) # 使用相邻的端口做 HTTPS
+        local HTTPS_PORT=$((SUB_PORT + 1))
         echo "$HTTPS_PORT" > "$CONF_DIR/sub_port_https.txt"
         
-        # 合并证书供 socat 使用
         cat "$CERT_DIR/acme.crt" "$CERT_DIR/acme.key" > "$CERT_DIR/socat.pem"
         
         if ! systemctl is-active --quiet vx-sub-https.service 2>/dev/null; then
@@ -358,7 +343,6 @@ After=vx-sub.service
 
 [Service]
 Type=simple
-# 核心魔法：将 HTTPS 流量解密后转发给本地的 Busybox
 ExecStart=$SOCAT_PATH openssl-listen:$HTTPS_PORT,cert=$CERT_DIR/socat.pem,verify=0,fork tcp:127.0.0.1:$SUB_PORT
 Restart=always
 
@@ -372,13 +356,10 @@ EOF
     fi
 }
 
-
-
 # --- 智能双引擎发证机 (真实ACME/极速自签 无缝切换) ---
 function generate_cert_dynamic() {
     local DOMAIN=$1
     mkdir -p $CERT_DIR
-    # 检测是否匹配已申请的真实 ACME 证书
     if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
         local ACME_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt")
         if [[ "$DOMAIN" == "$ACME_DOMAIN" ]]; then
@@ -388,7 +369,6 @@ function generate_cert_dynamic() {
             return
         fi
     fi
-    # 没匹配上，自动降级为极速量子自签
     echo -e "${cyan}>>> 正在为 [${DOMAIN}] 极速签发 10年期 ECC 量子自签证书...${plain}"
     rm -f $CERT_DIR/private.key $CERT_DIR/cert.crt
     openssl ecparam -genkey -name prime256v1 -out $CERT_DIR/private.key >/dev/null 2>&1
@@ -403,7 +383,6 @@ function apply_acme_cert() {
     get_smart_ip
     echo -e "当前 VPS IP: ${green}${SERVER_IP}${plain}"
     
-    # 极致防呆：增加可回车取消的提示
     read -p "👉 请输入您已解析的真实域名 (直接按回车可取消并返回): " REAL_DOMAIN
     
     if [[ -z "$REAL_DOMAIN" ]]; then
@@ -412,13 +391,11 @@ function apply_acme_cert() {
         return
     fi
     
-    # 依赖检查与安装 socat
     if ! command -v socat &> /dev/null; then
         echo -e "${cyan}>>> 正在补全 ACME 依赖 (socat)...${plain}"
         if [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then apt-get install -y socat cron >/dev/null 2>&1; else yum install -y socat cron >/dev/null 2>&1; fi
     fi
 
-    # 端口查杀：独立模式需要 80 端口
     if ss -tlpn | grep -q ":80 " || netstat -tlpn | grep -q ":80 "; then
         echo -e "${red}❌ 致命错误: 80 端口被占用！请先停止占用 80 端口的服务 (如 Nginx) 再试。${plain}"
         sleep 3 && return
@@ -438,7 +415,6 @@ function apply_acme_cert() {
 
     echo -e "${yellow}>>> 正在安装证书到 VX 引擎核心目录...${plain}"
     mkdir -p $CERT_DIR
-    # 注入无感重载命令，证书续签自动重启 Sing-box (极致防呆)
     ~/.acme.sh/acme.sh --installcert -d ${REAL_DOMAIN} --fullchainpath $CERT_DIR/acme.crt --keypath $CERT_DIR/acme.key --ecc --force --reloadcmd "systemctl restart vx-core.service" >/dev/null 2>&1
     echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt
     
@@ -532,7 +508,6 @@ function install_vmess_ws() {
     
     WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 
-    # 移除了自签证书，改为纯净 WS 监听
     cat << EOF > /tmp/vx_tmp.json
 {"type":"vmess","tag":"vmess-in","listen":"0.0.0.0","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"}}
 EOF
@@ -542,7 +517,6 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
     
-    # 构建无 TLS 的纯净 VMess 链接
     VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "" --arg path "$WS_PATH" --arg tls "" --arg sni "" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
     SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
     sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
@@ -580,7 +554,6 @@ EOF
     echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
 
-
 # --- 🚀 终极杀器：一键大满贯全协议装载 (防冲突优化版) ---
 function install_all_nodes() {
     check_sys && install_core && init_json && get_smart_ip
@@ -589,7 +562,6 @@ function install_all_nodes() {
     echo -e "         🚀 正在启动【大满贯】全协议一键全自动装载引擎 🚀"
     echo -e "${cyan}======================================================================${plain}"
 
-    # 1. 智能发证引导
     if [[ ! -f "$CERT_DIR/acme.crt" ]]; then
         echo -e "${yellow}⚠️ 检测到您尚未申请 ACME 真实证书！${plain}"
         read -p "❓ 是否先去申请真实域名证书？(输入 y 申请，直接回车则使用自签): " DO_ACME
@@ -601,7 +573,6 @@ function install_all_nodes() {
         fi
     fi
 
-    # 2. 智能域名与证书准备
     local COMMON_SNI="apple.com"
     if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
         COMMON_SNI=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
@@ -610,16 +581,12 @@ function install_all_nodes() {
         echo -e ">>> ⚠️ 未部署真实证书，已降级为量子自签与默认伪装: ${green}$COMMON_SNI${plain}"
     fi
 
-    # 统一提前调用一次证书生成逻辑（真实/自签），避免后续重复调用或遗漏
     generate_cert_dynamic "$COMMON_SNI" >/dev/null 2>&1
 
-   # 3. 彻底核爆清空历史数据
     > "$LINK_FILE"
     echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
 
-    # 4. 端口隔离生成池：确保大满贯五协议端口绝对不冲突！
     local BASE_PORTS=($(shuf -i 10000-50000 -n 5 | sort -u))
-    # 极低概率下如果 sort -u 导致数量不够 5 个，这里做一个强补救
     while [ ${#BASE_PORTS[@]} -lt 5 ]; do
         BASE_PORTS+=($(shuf -i 50001-60000 -n 1))
         BASE_PORTS=($(printf "%s\n" "${BASE_PORTS[@]}" | sort -u))
@@ -630,7 +597,6 @@ function install_all_nodes() {
     local P4=${BASE_PORTS[3]}
     local P5=${BASE_PORTS[4]}
 
-    # 5. 极速压入节点
     echo -e "\n${yellow}>>> [1/5] 正在极速压入 VLESS-Reality...${plain}"
     local U1=$TEMP_UUID; local K1=$($BIN_FILE generate reality-keypair); local PR1=$(echo "$K1" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU1=$(echo "$K1" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S1=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
     jq --argjson p "$P1" --arg u "$U1" --arg sni "apple.com" --arg pr "$PR1" --arg sid "$S1" '.inbounds += [{"type":"vless","tag":"vless-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE" | atomic_jq
@@ -678,28 +644,24 @@ function enable_bbr() {
     echo -e "               ⚡ 开启 BBR 底层网络狂暴加速 ⚡"
     echo -e "${cyan}======================================================================${plain}"
     
-    # 检查内核是否已开启 BBR
     if sysctl net.ipv4.tcp_congestion_control | grep -q bbr; then
         echo -e "\n${green}✅ 检测到 BBR 加速已处于开启状态，无需重复配置！${plain}"
         read -p "👉 按回车返回大屏..." && return
     fi
 
     echo -e "${yellow}>>> 正在向系统内核注入 BBR 狂暴参数...${plain}"
-   
+    
     # 强制唤醒内核模块，兼容更多阉割版系统
     modprobe tcp_bbr >/dev/null 2>&1 || true
-    # 清理可能存在的旧配置
+    
     sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
     
-    # 写入新参数
     echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
     echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
     
-    # 应用生效
     sysctl -p >/dev/null 2>&1
 
-    # 验证是否成功
     if sysctl net.ipv4.tcp_congestion_control | grep -q bbr; then
         echo -e "\n${green}✅ BBR 底层加速已成功激活！你的节点速度将获得质的飞跃！${plain}"
     else
@@ -709,7 +671,7 @@ function enable_bbr() {
 }
 
 # ==================================================
-# 🛡️ 附加挂载: WARP 智能优选解锁 (支持一键开/关与 IP 探针)
+# 🛡️ 附加挂载: WARP 智能优选解锁
 # ==================================================
 function enable_warp() {
     clear
@@ -717,7 +679,6 @@ function enable_warp() {
     echo -e "         🛡️ WARP 智能优选解锁引擎 (流媒体/AI 专线) 控制中心"
     echo -e "${cyan}======================================================================${plain}"
 
-    # 🚀 [新增逻辑] 智能状态感知：检测是否已经开启 WARP
     if jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
         echo -e "${green}>>> 系统检测：当前 WARP 智能分流已处于【运行中】状态！${plain}"
         read -p "❓ 是否要一键关闭并剥离 WARP 路由规则？(y/n) [默认 n]: " close_choice
@@ -738,8 +699,6 @@ function enable_warp() {
         return
     fi
 
-    # 🚀 下方为开启流程
-    # 1. 安全安装官方客户端
     if ! command -v warp-cli &> /dev/null; then
         echo -e "${yellow}>>> [1/4] 正在安全拉取 Cloudflare 官方组件 (不影响系统网络)...${plain}"
         apt-get update -y >/dev/null 2>&1
@@ -752,7 +711,6 @@ function enable_warp() {
         echo -e "${green}✅ WARP 客户端已存在，跳过安装。${plain}"
     fi
 
-    # 2. 隔离化配置 (绝对防失联)
     echo -e "${yellow}>>> [2/4] 正在建立本地 SOCKS5 安全隔离隧道...${plain}"
     warp-cli --accept-tos registration new >/dev/null 2>&1 || warp-cli registration new >/dev/null 2>&1
     warp-cli --accept-tos mode proxy >/dev/null 2>&1 || warp-cli mode proxy >/dev/null 2>&1
@@ -762,7 +720,6 @@ function enable_warp() {
     echo -e ">>> 正在等待隧道连通，请稍候 5 秒..."
     sleep 5
 
-    # 🚀 [新增逻辑] 物理探针极速抓取 IP
     WARP_IP=$(curl -s --max-time 3 -x socks5h://127.0.0.1:40000 ipinfo.io/ip 2>/dev/null)
     if [[ -n "$WARP_IP" ]]; then
         echo -e "${green}✅ WARP 隔离通道建立成功！(监听端口: 40000 | 成功套取防封 IP: ${cyan}${WARP_IP}${green})${plain}"
@@ -772,23 +729,15 @@ function enable_warp() {
         read -p "" && return
     fi
 
-    # 3. 注入 Sing-box 神经元路由
     echo -e "${yellow}>>> [3/4] 正在向 Sing-box 注入 AI 与流媒体精准分流规则...${plain}"
-
-    # 确保 route 结构存在
     if ! jq -e '.route' "$JSON_FILE" >/dev/null; then
         jq '. += {"route": {"rules": []}}' "$JSON_FILE" | atomic_jq
     fi
 
-    # 清理历史规则
     jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq
-
-    # 挂载 SOCKS5 出口
     jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" | atomic_jq
-
-    # 【最稳妥：神级关键词分流 + 强制底层流量嗅探】彻底解决多端 DNS 泄露导致的分流失效
     jq '.outbounds = [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}, {"type":"direct","tag":"direct"}, {"type":"block","tag":"block"}] | .route.rules = [{"domain_keyword":["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"],"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"],"outbound":"warp-socks"}] | .inbounds |= map(. + {"sniff":true,"sniff_override_destination":true})' "$JSON_FILE" | atomic_jq
-    # 4. 重启生效
+    
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
     systemctl restart vx-core.service
 
@@ -798,15 +747,14 @@ function enable_warp() {
 }
 
 # ==================================================
-# ☁️ 终极保命: Cloudflare Argo 隧道挂载 (全架构无雷版)
+# ☁️ 终极保命: Cloudflare Argo 隧道挂载
 # ==================================================
 function enable_argo() {
     clear
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "             ☁️ Argo 隧道 (VMess-WS 复活甲) 智能控制中枢"
+    echo -e "              ☁️ Argo 隧道 (VMess-WS 复活甲) 智能控制中枢"
     echo -e "${cyan}======================================================================${plain}"
 
-    # 🚀 智能状态感知：检测 Argo 是否已在运行
     if systemctl is-active --quiet vx-argo.service 2>/dev/null || [[ -f /etc/systemd/system/vx-argo.service ]]; then
         echo -e "${green}>>> 系统检测：当前 Argo 隧道复活甲已处于【部署/运行】状态！${plain}"
         read -p "❓ 是否要一键关闭并彻底拆除 Argo 隧道？(y/n) [默认 n]: " close_choice
@@ -817,12 +765,10 @@ function enable_argo() {
             rm -f /etc/systemd/system/vx-argo.service
             systemctl daemon-reload
             
-            # 智能清理遗留的节点链接 (修复Base64无法匹配的Bug)
         if [[ -f "$LINK_FILE" ]]; then
             mv "$LINK_FILE" "${LINK_FILE}.tmp"
             cat "${LINK_FILE}.tmp" | while read line; do
                 if [[ "$line" == vmess://* ]]; then
-                    # 强行把密码箱撬开看一眼，如果有 trycloudflare 或者 Argo 就扔掉，没有就保留
                     if ! echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null | grep -qiE "trycloudflare|Argo"; then
                         echo "$line" >> "$LINK_FILE"
                     fi
@@ -841,7 +787,6 @@ function enable_argo() {
         return
     fi
 
-    # 1. 提取底层 VMess 核心参数
     local VMESS_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE" 2>/dev/null)
     local VMESS_PATH=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .transport.path' "$JSON_FILE" 2>/dev/null)
     local VMESS_UUID=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .users[0].uuid' "$JSON_FILE" 2>/dev/null)
@@ -851,7 +796,6 @@ function enable_argo() {
         read -p "👉 按回车返回大屏..." && return
     fi
 
-    # 2. 安装官方 Cloudflared 核心 (👑 核心优化：全架构智能嗅探兼容)
     if ! command -v cloudflared &> /dev/null; then
         echo -e "${yellow}>>> [1/4] 正在拉取 Cloudflare Argo 官方核心组件...${plain}"
         local CPU_ARCH=$(uname -m)
@@ -869,7 +813,6 @@ function enable_argo() {
         chmod +x /usr/local/bin/cloudflared
     fi
 
-    # 3. 智能双轨制选择 (小白 vs 极客)
     echo -e "\n${yellow}>>> [2/4] 请选择 Argo 隧道运行模式：${plain}"
     echo -e "  ${purple}1.${plain} 临时穿透模式 (系统自动分配随机域名，免配置，小白首选)"
     echo -e "  ${green}2.${plain} 固定保活模式 (需配置 CF Zero Trust，绑定自有域名，极客推荐)"
@@ -896,7 +839,6 @@ function enable_argo() {
         echo -e "${yellow}提示: 如果您还没准备好，直接按回车键即可安全退出。${plain}\n"
 
         read -p "👉 请粘贴您的 Cloudflare Tunnel Token: " ARGO_TOKEN
-        # 👑 核心优化：强行物理除垢，去掉所有可能的空格、换行符
         ARGO_TOKEN=$(echo "$ARGO_TOKEN" | tr -d ' ' | tr -d '\n' | tr -d '\r')
         
         if [[ -z "$ARGO_TOKEN" ]]; then
@@ -951,7 +893,6 @@ EOF
     systemctl restart vx-argo
     systemctl enable vx-argo >/dev/null 2>&1
     
-    # 👑 核心优化：启动后睡 2 秒，如果进程报错死掉，立刻阻断并清理现场！
     sleep 2
     if ! systemctl is-active --quiet vx-argo.service; then
         echo -e "\n${red}❌ Argo 隧道核心进程启动失败！${plain}"
@@ -962,7 +903,6 @@ EOF
         read -p "👉 已安全回滚，按回车返回大屏..." && return
     fi
 
-    # 4. 临时模式的自动化域名抓取
     if [[ "$ARGO_MODE" != "2" ]]; then
         echo -e ">>> 正在等待 CF 边缘节点下发临时域名，请耐心等待 8 秒..."
         sleep 8
@@ -976,7 +916,6 @@ EOF
         fi
     fi
 
-    # 5. 生成终极节点链接
     echo -e "${yellow}>>> [4/4] 正在锻造 Argo 终极复活节点...${plain}"
     
     local ARGO_MAGIC_ADDRESS="www.visa.com"
@@ -1011,15 +950,14 @@ EOF
 }
 
 # ==================================================
-# 🔄 OTA 热更新引擎: 脚本与内核双轨升级
+# 🔄 OTA 热更新引擎
 # ==================================================
 function update_ota() {
     clear
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "            🔄 VeloX OTA 智能热更新引擎"
+    echo -e "             🔄 VeloX OTA 智能热更新引擎"
     echo -e "${cyan}======================================================================${plain}"
 
-    # --- 1. 更新面板脚本自身 ---
     echo -e "${yellow}>>> [1/2] 正在检测面板脚本更新...${plain}"
     curl -sL "$SCRIPT_URL" -o /tmp/vx_new.sh
     if [[ -f /tmp/vx_new.sh && -s /tmp/vx_new.sh ]]; then
@@ -1030,16 +968,13 @@ function update_ota() {
         echo -e "${red}❌ 脚本拉取失败，请检查网络！${plain}"
     fi
 
-    # --- 2. 更新 Sing-box 核心 ---
     echo -e "\n${yellow}>>> [2/2] 正在检测 Sing-box 核心版本...${plain}"
     
-    # 获取本地版本
     local CURRENT_VER=$($BIN_FILE version 2>/dev/null | grep "version" | awk '{print $3}')
     if [[ -z "$CURRENT_VER" ]]; then
         CURRENT_VER="未知"
     fi
 
-    # 获取远端最新版本 (解析 GitHub API)
     local LATEST_VER=$(curl -s "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | jq -r .tag_name | sed 's/v//g')
 
     if [[ -z "$LATEST_VER" || "$LATEST_VER" == "null" ]]; then
@@ -1055,7 +990,6 @@ function update_ota() {
     else
         echo -e "\n${yellow}💡 发现新版本，正在为您热更新核心...${plain}"
         
-        # 下载最新内核 (自动适配 amd64/arm64)
         local ARCH_RAW=$(uname -m)
         case "${ARCH_RAW}" in
             x86_64) CPU_ARCH="amd64" ;;
@@ -1099,7 +1033,6 @@ function export_all_nodes() {
     cat "$LINK_FILE" | while read line; do 
         PROTOCOL=$(echo "$line" | cut -d ':' -f 1 | tr 'a-z' 'A-Z')
    if [[ "$PROTOCOL" == "VMESS" ]]; then
-            # 暴力破解：直接把当前的 vmess 链接进行 Base64 解码，看里面的核心内容
             VM_JSON=$(echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null)
             
             if [[ "$VM_JSON" == *".trycloudflare.com"* ]]; then
@@ -1141,14 +1074,14 @@ function uninstall_vne() {
         return
     fi
 
-    echo -e "${yellow}>>> [1/5] 正在终止并拆除底层守护进程...${plain}"
-    systemctl stop vx-core.service vx-argo.service >/dev/null 2>&1
-    systemctl disable vx-core.service vx-argo.service >/dev/null 2>&1
-    rm -f $SERVICE_FILE /etc/systemd/system/vx-argo.service
+    echo -e "${yellow}>>> [1/5] 正在终止并拆除所有底层守护进程...${plain}"
+    # 彻底干掉所有核心与订阅相关服务
+    systemctl stop vx-core.service vx-argo.service vx-sub.service vx-sub-https.service >/dev/null 2>&1
+    systemctl disable vx-core.service vx-argo.service vx-sub.service vx-sub-https.service >/dev/null 2>&1
+    rm -f $SERVICE_FILE /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub.service /etc/systemd/system/vx-sub-https.service
     systemctl daemon-reload
 
     echo -e "${yellow}>>> [2/5] 正在安全剥离 WARP 与 Argo 核心组件...${plain}"
-    # 彻底卸载 Cloudflare WARP
     if command -v warp-cli &> /dev/null; then
         warp-cli disconnect >/dev/null 2>&1
         if command -v apt-get &> /dev/null; then
@@ -1157,9 +1090,8 @@ function uninstall_vne() {
             yum remove -y cloudflare-warp >/dev/null 2>&1
         fi
         rm -rf /var/lib/cloudflare-warp
-        rm -f /etc/apt/sources.list.d/cloudflare-client.list # 斩断更新源
+        rm -f /etc/apt/sources.list.d/cloudflare-client.list
     fi
-    # 删除 Argo (Cloudflared) 二进制文件
     rm -f /usr/local/bin/cloudflared
 
     echo -e "${yellow}>>> [3/5] 正在注销 ACME 证书续签任务 (防流氓驻留)...${plain}"
@@ -1222,7 +1154,6 @@ function test_media_unlock() {
     echo -e "                 📺 流媒体与 AI 解锁终极检测中心"
     echo -e "${cyan}======================================================================${plain}"
     
-    # 智能判断：检测是否已经挂载了 WARP
     if jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
         echo -e "${green}>>> 检测到 WARP 护盾已开启！正在通过底层 40000 端口进行深度穿透检测...${plain}"
         echo -e "${yellow}💡 提示: 测速脚本正在拉取中，大约需要 1-2 分钟，请耐心等待。${plain}\n"
