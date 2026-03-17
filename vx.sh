@@ -83,7 +83,7 @@ fi
     if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
         ARGO_STAT="${green}运行中 ✅${plain} (VMess 穿透保活)"
     fi
-    
+
     if [[ -f "$JSON_FILE" ]]; then
         if jq -e '.inbounds[] | select(.tag == "vless-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VL_STAT="${green}[开启]${plain}"; VL_PORT=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .listen_port' "$JSON_FILE"); VL_SNI=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .tls.server_name' "$JSON_FILE")
@@ -157,7 +157,7 @@ function check_sys() {
     mkdir -p "$CONF_DIR"
     touch "$LINK_FILE"
     # === 🚀 自动化环境自检：补全所有极客组件 ===
-    local NEED_PACKAGES=(jq qrencode curl wget openssl tar)
+    local NEED_PACKAGES=(jq qrencode curl wget openssl tar busybox)
     local MISSING_PACKAGES=()
     for pkg in "${NEED_PACKAGES[@]}"; do
         if ! command -v "$pkg" &>/dev/null; then MISSING_PACKAGES+=("$pkg"); fi
@@ -252,6 +252,59 @@ function get_smart_ip() {
         SERVER_IP="[$IPV6_TMP]" # 纯 IPv6 环境自动加括号以符合 URL 规范
     else
         SERVER_IP="127.0.0.1"
+    fi
+}
+
+
+# ==================================================
+# 📡 动态订阅防盗分发引擎 (Busybox 极低内存版)
+# ==================================================
+function update_sub() {
+    local WEB_DIR="$CONF_DIR/www"
+    local SUB_PORT_FILE="$CONF_DIR/sub_port.txt"
+    local SUB_PATH_FILE="$CONF_DIR/sub_path.txt"
+
+    # 1. 初始化防盗路径与随机端口 (仅首次生成)
+    if [[ ! -f "$SUB_PORT_FILE" ]]; then
+        echo $(shuf -i 30000-40000 -n 1) > "$SUB_PORT_FILE"
+    fi
+    if [[ ! -f "$SUB_PATH_FILE" ]]; then
+        # 生成类似 UUID 的长字符串作为防扫密码锁
+        cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)" > "$SUB_PATH_FILE"
+    fi
+
+    local SUB_PORT=$(cat "$SUB_PORT_FILE")
+    local SUB_PATH=$(cat "$SUB_PATH_FILE")
+    local TARGET_DIR="$WEB_DIR/$SUB_PATH"
+
+    mkdir -p "$TARGET_DIR"
+
+    # 2. 实时聚合 Base64 订阅文件
+    if [[ -s "$LINK_FILE" ]]; then
+        cat "$LINK_FILE" | base64 -w 0 > "$TARGET_DIR/vx_sub"
+    else
+        echo "" > "$TARGET_DIR/vx_sub"
+    fi
+
+    # 3. Systemd 工业级守护 Busybox
+    if ! systemctl is-active --quiet vx-sub.service 2>/dev/null; then
+        cat <<EOF > /etc/systemd/system/vx-sub.service
+[Unit]
+Description=Velox Subscription Server (Busybox)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/busybox httpd -f -p $SUB_PORT -h $WEB_DIR
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        systemctl daemon-reload
+        systemctl enable --now vx-sub.service >/dev/null 2>&1
+        open_port $SUB_PORT
     fi
 }
 
@@ -354,6 +407,7 @@ EOF
     SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-VeloX"
     sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
+    update_sub
     echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
 
@@ -376,6 +430,7 @@ EOF
     SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&insecure=1#Hys2-VeloX"
     sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
+    update_sub
     echo -e "\n${green}✅ Hysteria2 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
 
@@ -399,6 +454,7 @@ EOF
     SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX"
     sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
+    update_sub
     echo -e "\n${green}✅ TUIC v5 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
 
@@ -425,6 +481,7 @@ EOF
     SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
     sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
+    update_sub
     echo -e "\n${green}✅ VMess-WS (纯净直连版) 装载完成！现在你可以直接把它套入 Cloudflare CDN。${plain}"
     echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
@@ -453,6 +510,7 @@ EOF
     SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
     sed -i '/^trojan:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
+    update_sub
     echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
 }
 
@@ -539,6 +597,7 @@ function install_all_nodes() {
     open_port $P5
 
     systemctl restart vx-core.service
+    update_sub
     echo -e "\n${green}✅ 大满贯全量装载完成！防火墙已被打穿，五大神级协议已全部就绪！${plain}"
     echo -e "👉 ${yellow}提示: 请按回车返回主菜单，直接按【8】提取所有节点链接！${plain}"
     read -p ""
@@ -704,6 +763,7 @@ function enable_argo() {
             done
             rm -f "${LINK_FILE}.tmp"
         fi
+        update_sub
         echo -e "${green}✅ Argo 隧道已彻底拆除，复活甲节点已从本地销毁！${plain}"
         else
             echo -e "${green}>>> 操作已取消，Argo 隧道继续为您保驾护航。${plain}"
@@ -869,7 +929,7 @@ EOF
 
     sed -i '/VMess-Argo-复活甲/d' "$LINK_FILE" 2>/dev/null
     echo "$ARGO_LINK" >> "$LINK_FILE"
-
+    update_sub
     echo -e "\n${green}🎉 Argo 隧道挂载成功！哪怕服务器 IP 被墙，此节点依然坚挺！${plain}"
     if [[ "$ARGO_MODE" == "2" ]]; then
         echo -e "${purple}🛡️ 当前模式: 固定隧道 (Zero Trust)${plain}"
