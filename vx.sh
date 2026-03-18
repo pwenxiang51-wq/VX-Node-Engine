@@ -180,7 +180,7 @@ function check_sys() {
     mkdir -p "$CONF_DIR"
     touch "$LINK_FILE"
     # === 🚀 自动化环境自检：补全所有极客组件 ===
-    local NEED_PACKAGES=(jq qrencode curl wget openssl tar busybox)
+    local NEED_PACKAGES=(jq qrencode curl wget openssl tar busybox socat)
     local MISSING_PACKAGES=()
     for pkg in "${NEED_PACKAGES[@]}"; do
         if ! command -v "$pkg" &>/dev/null; then MISSING_PACKAGES+=("$pkg"); fi
@@ -439,8 +439,7 @@ function apply_acme_cert() {
     echo -e "${yellow}>>> 正在安装证书到 VX 引擎核心目录...${plain}"
     mkdir -p $CERT_DIR
     # 注入无感重载命令，证书续签自动重启 Sing-box (极致防呆)
-    ~/.acme.sh/acme.sh --installcert -d ${REAL_DOMAIN} --fullchainpath $CERT_DIR/acme.crt --keypath $CERT_DIR/acme.key --ecc --force --reloadcmd "systemctl restart vx-core.service" >/dev/null 2>&1
-    echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt
+   ~/.acme.sh/acme.sh --installcert -d ${REAL_DOMAIN} --fullchainpath $CERT_DIR/acme.crt --keypath $CERT_DIR/acme.key --ecc --force --reloadcmd "systemctl restart vx-core.service vx-sub-https.service" >/dev/null 2>&1    echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt
     
     echo -e "\n${green}✅ ACME 真实证书部署完成！系统将自动为您管理后续的十年续签。${plain}"
     echo -e "👉 ${yellow}提示: 安装 Hys2/TUIC/Trojan 时填入此域名，将自动接管真实证书！${plain}"
@@ -1142,9 +1141,12 @@ function uninstall_vne() {
     fi
 
     echo -e "${yellow}>>> [1/5] 正在终止并拆除底层守护进程...${plain}"
-    systemctl stop vx-core.service vx-argo.service >/dev/null 2>&1
-    systemctl disable vx-core.service vx-argo.service >/dev/null 2>&1
-    rm -f $SERVICE_FILE /etc/systemd/system/vx-argo.service
+    # 👇 加上 vx-sub.service 和 vx-sub-https.service
+    systemctl stop vx-core.service vx-argo.service vx-sub.service vx-sub-https.service >/dev/null 2>&1
+    systemctl disable vx-core.service vx-argo.service vx-sub.service vx-sub-https.service >/dev/null 2>&1
+    
+    # 👇 加上订阅服务的残余文件清理
+    rm -f $SERVICE_FILE /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub*.service
     systemctl daemon-reload
 
     echo -e "${yellow}>>> [2/5] 正在安全剥离 WARP 与 Argo 核心组件...${plain}"
