@@ -145,7 +145,7 @@ fi
     echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
     echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
     echo -e " ⚡ 更新状态：$UPDATE_MSG"
-    echo -e " 🛡️ 架构认证：${yellow}全系 Linux 通杀${plain} (Ubuntu/Debian/CentOS) | ${purple}ARM 神机适配${plain}"
+    echo -e " 🛡️ 架构认证：${yellow}全系 Linux 通杀${plain} (Ubuntu/Debian/CentOS) | ARM 神机适配"
     echo -e " ☁️ 云端穿透：${yellow}无视 1:1 NAT${plain} 深度适配 AWS / GCP / Oracle 等大厂 VPC"
     echo -e "${cyan}======================================================================${plain}"
     # 👆👆👆 ------------------------ 👆👆👆
