@@ -1249,88 +1249,87 @@ function test_media_unlock() {
 # 🕵️ 节点防盗哨兵 (SSH 直显大屏 + 全自动后台抓鬼)
 # ==================================================
 function node_sentinel() {
-    clear
-    echo -e "${cyan}======================================================================${plain}"
-    echo -e "                 🕵️ 节点防盗哨兵 (全息监控与后台雷达)"
-    echo -e "${cyan}======================================================================${plain}"
+    while true; do
+        clear
+        echo -e "${cyan}======================================================================${plain}"
+        echo -e "                 🕵️ 节点防盗哨兵 (全息监控与后台雷达)"
+        echo -e "${cyan}======================================================================${plain}"
 
-    if ! systemctl is-active --quiet vx-core.service; then
-        echo -e "${red}❌ 致命错误：代理核心未运行，无法抓取日志！${plain}"
-        read -p "👉 按回车返回..." && return
-    fi
+        if ! systemctl is-active --quiet vx-core.service; then
+            echo -e "${red}❌ 致命错误：代理核心未运行，无法抓取日志！${plain}"
+            read -p "👉 按回车返回主菜单..." && return
+        fi
 
-    # 动态侦测后台守护进程状态
-    if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
-        DAEMON_STAT="${green}[后台守护中]✅${plain}"
-    else
-        DAEMON_STAT="${yellow}[未部署]⚠️${plain}"
-    fi
+        # 动态侦测后台守护进程状态
+        if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
+            DAEMON_STAT="${green}[后台守护中]✅${plain}"
+        else
+            DAEMON_STAT="${yellow}[未部署]⚠️${plain}"
+        fi
 
-    echo -e "  ${green}1.${plain} 📊 极客大屏：分析过去 24 小时连接 IP 与归属地 (直接看)"
-    echo -e "  ${green}2.${plain} 📺 实时滚动：类似甬哥的动态追踪 (按 Ctrl+C 退出)"
-    echo -e "  ${cyan}3.${plain} 📡 部署/拆除：全自动 TG 雷达哨兵 ${DAEMON_STAT}"
-    echo -e "      ${yellow}└─ 开启后只要有【分享的新用户 / 宽带变IP】连入，自动报警！${plain}"
-    echo -e "  ${purple}4.${plain} 🧹 清理已知 IP 缓存 (让旧 IP 重新触发 TG 报警)"
-    echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
-    echo -e "${cyan}----------------------------------------------------------------------${plain}"
-    read -p "👉 请选择操作 [0-4]: " sen_choice
+        echo -e "  ${green}1.${plain} 📊 极客大屏：分析过去 24 小时连接 IP 与归属地 (直接看)"
+        echo -e "  ${green}2.${plain} 📺 实时滚动：全自动动态日志追踪 (按 Ctrl+C 退出)"
+        echo -e "  ${cyan}3.${plain} 📡 部署/拆除：全自动 TG 雷达哨兵 ${DAEMON_STAT}"
+        echo -e "      ${yellow}└─ 开启后只要有【分享的新用户 / 宽带变IP】连入，自动报警！${plain}"
+        echo -e "  ${purple}4.${plain} 🧹 清理已知 IP 缓存 (让旧 IP 重新触发 TG 报警)"
+        echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
+        echo -e "${cyan}----------------------------------------------------------------------${plain}"
+        read -p "👉 请选择操作 [0-4]: " sen_choice
 
-    case "$sen_choice" in
-        1)
-            echo -e "\n${yellow}>>> 正在解析 Sing-box 底层日志，提取有效人类活动 IP...${plain}"
-            local raw_ips=$(journalctl -u vx-core.service --since "24 hours ago" --no-pager | grep "inbound connection from" | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | grep -v -E "^(127\.|10\.|192\.168\.|172\.)" | sort -u)
+        case "$sen_choice" in
+            1)
+                echo -e "\n${yellow}>>> 正在解析 Sing-box 底层日志，提取有效人类活动 IP...${plain}"
+                local raw_ips=$(journalctl -u vx-core.service --since "24 hours ago" --no-pager | grep "inbound connection from" | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | grep -v -E "^(127\.|10\.|192\.168\.|172\.)" | sort -u)
 
-            if [[ -z "$raw_ips" ]]; then
-                echo -e "${green}✅ 报告：暂未发现外部连接，节点如防空洞般清净！${plain}"
-            else
-                echo -e "\n${blue} 序号 |      外部 IP      |   归属地 (国家/城市)   |   运营商/组织${plain}"
-                echo -e "${cyan}----------------------------------------------------------------------${plain}"
-                local i=1
-                for ip in $raw_ips; do
-                    local info=$(curl -s --connect-timeout 2 "http://ip-api.com/json/$ip?lang=zh-CN")
-                    local country=$(echo "$info" | jq -r '.country // "未知"')
-                    local city=$(echo "$info" | jq -r '.city // "未知"')
-                    local isp=$(echo "$info" | jq -r '.isp // "未知"')
-                    printf " ${yellow}[%02d]${plain} | %-15s | %-16s | %s\n" "$i" "$ip" "$country/$city" "$isp"
-                    let i++
-                done
-                echo -e "${cyan}----------------------------------------------------------------------${plain}"
-            fi
-            read -p "👉 审查完毕！按回车键返回..."
-            ;;
-        2)
-            echo -e "\n${cyan}>>> 正在进入动态日志追踪模式 (按 Ctrl+C 退出)...${plain}"
-            # 类似甬哥的实时追踪，附带强制上海时区显示
-            TZ="Asia/Shanghai" journalctl -u vx-core.service -f | grep --line-buffered "inbound connection from"
-            ;;
-        3)
-            if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
-                echo -e "\n${yellow}>>> 正在拆除全自动后台雷达...${plain}"
-                systemctl stop vx-tg-sentinel >/dev/null 2>&1
-                systemctl disable vx-tg-sentinel >/dev/null 2>&1
-                rm -f /etc/systemd/system/vx-tg-sentinel.service
-                rm -f /usr/local/bin/vx-tg-sentinel.sh
-                systemctl daemon-reload
-                echo -e "${green}✅ 后台自动报警守护进程已彻底粉碎！${plain}"
-            else
-                echo -e "\n${cyan}=== 🚀 正在部署【全自动静默监听雷达】 ===${plain}"
-                TG_CONF="/etc/velox_tg.conf"
-                if [[ -f "$TG_CONF" ]]; then source "$TG_CONF"; fi
-                if [[ -z "$GLOBAL_TG_TOKEN" || -z "$GLOBAL_TG_CHATID" ]]; then
-                    echo -e "${yellow}💡 需绑定 TG 机器人，以后只要后台发现新 IP 连接，自动推送！${plain}"
-                    read -p "🔑 请输入 TG Bot Token: " input_token
-                    read -p "💬 请输入 TG Chat ID: " input_chatid
-                    if [[ -z "$input_token" || -z "$input_chatid" ]]; then
-                        echo -e "${red}❌ 输入为空，已取消部署。${plain}"; read -p "按回车返回..."; return
-                    fi
-                    echo "GLOBAL_TG_TOKEN=\"$input_token\"" > "$TG_CONF"
-                    echo "GLOBAL_TG_CHATID=\"$input_chatid\"" >> "$TG_CONF"
-                    GLOBAL_TG_TOKEN="$input_token"
-                    GLOBAL_TG_CHATID="$input_chatid"
+                if [[ -z "$raw_ips" ]]; then
+                    echo -e "${green}✅ 报告：暂未发现外部连接，节点如防空洞般清净！${plain}"
+                else
+                    echo -e "\n${blue} 序号 |      外部 IP      |   归属地 (国家/城市)   |   运营商/组织${plain}"
+                    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+                    local i=1
+                    for ip in $raw_ips; do
+                        local info=$(curl -s --connect-timeout 2 "http://ip-api.com/json/$ip?lang=zh-CN")
+                        local country=$(echo "$info" | jq -r '.country // "未知"')
+                        local city=$(echo "$info" | jq -r '.city // "未知"')
+                        local isp=$(echo "$info" | jq -r '.isp // "未知"')
+                        printf " ${yellow}[%02d]${plain} | %-15s | %-16s | %s\n" "$i" "$ip" "$country/$city" "$isp"
+                        let i++
+                    done
+                    echo -e "${cyan}----------------------------------------------------------------------${plain}"
                 fi
+                read -p "👉 审查完毕！按回车键返回哨兵菜单..."
+                ;;
+            2)
+                echo -e "\n${cyan}>>> 正在进入动态日志追踪模式 (按 Ctrl+C 退出)...${plain}"
+                TZ="Asia/Shanghai" journalctl -u vx-core.service -f | grep --line-buffered "inbound connection from"
+                ;;
+            3)
+                if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
+                    echo -e "\n${yellow}>>> 正在拆除全自动后台雷达...${plain}"
+                    systemctl stop vx-tg-sentinel >/dev/null 2>&1
+                    systemctl disable vx-tg-sentinel >/dev/null 2>&1
+                    rm -f /etc/systemd/system/vx-tg-sentinel.service
+                    rm -f /usr/local/bin/vx-tg-sentinel.sh
+                    systemctl daemon-reload
+                    echo -e "${green}✅ 后台自动报警守护进程已彻底粉碎！${plain}"
+                else
+                    echo -e "\n${cyan}=== 🚀 正在部署【全自动静默监听雷达】 ===${plain}"
+                    TG_CONF="/etc/velox_tg.conf"
+                    if [[ -f "$TG_CONF" ]]; then source "$TG_CONF"; fi
+                    if [[ -z "$GLOBAL_TG_TOKEN" || -z "$GLOBAL_TG_CHATID" ]]; then
+                        echo -e "${yellow}💡 需绑定 TG 机器人，以后只要后台发现新 IP 连接，自动推送！${plain}"
+                        read -p "🔑 请输入 TG Bot Token: " input_token
+                        read -p "💬 请输入 TG Chat ID: " input_chatid
+                        if [[ -z "$input_token" || -z "$input_chatid" ]]; then
+                            echo -e "${red}❌ 输入为空，已取消部署。${plain}"; read -p "按回车返回哨兵菜单..."; continue
+                        fi
+                        echo "GLOBAL_TG_TOKEN=\"$input_token\"" > "$TG_CONF"
+                        echo "GLOBAL_TG_CHATID=\"$input_chatid\"" >> "$TG_CONF"
+                        GLOBAL_TG_TOKEN="$input_token"
+                        GLOBAL_TG_CHATID="$input_chatid"
+                    fi
 
-                # 💡 核爆级大招：强制注入上海时区的后台守护进程！
-                cat << 'EOF' > /usr/local/bin/vx-tg-sentinel.sh
+                    cat << 'EOF' > /usr/local/bin/vx-tg-sentinel.sh
 #!/bin/bash
 export TZ="Asia/Shanghai"
 source /etc/velox_tg.conf
@@ -1341,7 +1340,6 @@ journalctl -u vx-core.service -f -n 0 | grep --line-buffered "inbound connection
     [ -z "$IP" ] && continue
     [[ "$IP" =~ ^(127\.|10\.|172\.|192\.168\.) ]] && continue
     
-    # 智能比对：如果是新面孔（或者动态宽带换了新 IP）
     if ! grep -q "^$IP$" /root/.vx_known_ips 2>/dev/null; then
         echo "$IP" >> /root/.vx_known_ips
         GEO=$(curl -s4m3 "http://ip-api.com/line/$IP?lang=zh-CN&fields=country,city,isp" | tr '\n' ' ' | sed 's/ $//')
@@ -1359,9 +1357,9 @@ journalctl -u vx-core.service -f -n 0 | grep --line-buffered "inbound connection
     fi
 done
 EOF
-                chmod +x /usr/local/bin/vx-tg-sentinel.sh
+                    chmod +x /usr/local/bin/vx-tg-sentinel.sh
 
-                cat << EOF > /etc/systemd/system/vx-tg-sentinel.service
+                    cat << EOF > /etc/systemd/system/vx-tg-sentinel.service
 [Unit]
 Description=Velox TG Sentinel Background Radar
 After=vx-core.service
@@ -1375,23 +1373,23 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-                systemctl daemon-reload
-                systemctl enable --now vx-tg-sentinel >/dev/null 2>&1
-                echo -e "${green}✅ 全自动监听雷达已潜伏入系统底层！${plain}"
-                echo -e "💡 它会像猎犬一样死死盯着 Sing-box，发现新猎物立刻通过 TG 咬警报！"
-            fi
-            read -p "👉 按回车返回..."
-            ;;
-        4)
-            echo -e "\n${yellow}正在清空已记录的 IP 白名单缓存...${plain}"
-            > /root/.vx_known_ips
-            systemctl restart vx-tg-sentinel 2>/dev/null
-            echo -e "${green}✅ 清理完毕！你的手机当前 IP 只要再产生流量，就会被当作“新面孔”再次触发 TG 报警！${plain}"
-            read -p "👉 按回车返回..."
-            ;;
-        0) return ;;
-        *) echo -e "${red}❌ 无效选择！${plain}"; sleep 1 ;;
-    esac
+                    systemctl daemon-reload
+                    systemctl enable --now vx-tg-sentinel >/dev/null 2>&1
+                    echo -e "${green}✅ 全自动监听雷达已潜伏入系统底层！${plain}"
+                fi
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+            4)
+                echo -e "\n${yellow}正在清空已记录的 IP 白名单缓存...${plain}"
+                > /root/.vx_known_ips
+                systemctl restart vx-tg-sentinel 2>/dev/null
+                echo -e "${green}✅ 清理完毕！你的手机当前 IP 只要再产生流量，就会被当作“新面孔”再次触发 TG 报警！${plain}"
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+            0) return ;;
+            *) echo -e "${red}❌ 无效选择！${plain}"; sleep 1 ;;
+        esac
+    done
 }
 
 # === 🚀 极客快捷指令拦截器 (CLI 模式) ===
