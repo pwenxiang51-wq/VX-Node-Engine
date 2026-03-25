@@ -1497,45 +1497,47 @@ while true; do
     # ======================================================================
     
     show_dashboard
-    echo -e "  ${cyan}1.${plain} ➕ 新增/覆写 VLESS-Reality         ${green}[最稳主力✨]${plain}"
-    echo -e "  ${cyan}2.${plain} ➕ 新增/覆写 Hysteria2  (支持自定域名) ${yellow}[暴力加速🚀]${plain}"
-    echo -e "  ${cyan}3.${plain} ➕ 新增/覆写 TUIC v5    (支持自定域名) ${blue}[极致抗丢包💎]${plain}"
-    echo -e "  ${cyan}4.${plain} ➕ 新增/覆写 VMess-WS             ${red}[Argo基座/CDN专属]${plain}"
-    echo -e "  ${cyan}5.${plain} ➕ 新增/覆写 Trojan-Reality        ${purple}[神级隐身✨]${plain}"
-    echo -e "----------------------------------------------------------------------"
-    echo -e "  ${cyan}6.${plain} 🌍 附加挂载: Acme 真实证书极速申请"
-    echo -e "  ${cyan}7.${plain} 🚀 终极大招: 一键满血装载所有协议"
-    echo -e "  ${cyan}c.${plain} 🔄 附加防御: 一键换皮 (重置 UDP 防探针乱码装甲)"
-    echo -e "  ${cyan}b.${plain} ⚡ 底层调优: BBR 狂暴网络加速"
-    echo -e "  ${cyan}w.${plain} 🛡️ 附加挂载: WARP 优选解锁 (Netflix/ChatGPT 等)"
-    echo -e "  ${cyan}a.${plain} ☁️ 附加挂载: Argo 隧道防封复活甲 (基于 VMess)"
-    echo -e "----------------------------------------------------------------------"
-    echo -e "  ${cyan}8.${plain} 🖨️  一键提取全节点 (明文/Base64/二维码)"
-    echo -e "  ${cyan}9.${plain} 🔄 OTA 热更新引擎        ${cyan}10.${plain} 🗑️  ${red}彻底粉碎卸载${plain}"
-    echo -e "  ${cyan}t.${plain} 📺 流媒体/AI解锁测试      ${cyan}0.${plain} 🔙 退出终端"
-    echo -e "  ${cyan}s.${plain} 🕵️ 节点防盗哨兵 (查活跃IP/推TG) ${TG_RADAR_STAT}"
-    echo -e "  ${cyan}h.${plain} 📖 面板说明与避坑指南"
     echo -e "${cyan}======================================================================${plain}"
-    read -p "👉 执行指令 [0-10, b/w/a/t/s/h/c]: " choice
+    echo -e "                 🚀 【 vx 核心引擎装载区 】"
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "  ${cyan}1.${plain} ➕ 新增/覆写 VLESS-Reality          ${green}[最稳主力✨]${plain}"
+    echo -e "  ${cyan}2.${plain} ➕ 新增/覆写 Hysteria2 (支持自定)   ${yellow}[暴力加速🚀]${plain}"
+    echo -e "  ${cyan}3.${plain} ➕ 新增/覆写 TUIC v5   (支持自定)   ${blue}[极致抗丢包💎]${plain}"
+    echo -e "  ${cyan}4.${plain} ➕ 新增/覆写 VMess-WS               ${red}[Argo基座/CDN专属]${plain}"
+    echo -e "  ${cyan}5.${plain} ➕ 新增/覆写 Trojan-Reality         ${purple}[神级隐身✨]${plain}"
+    echo -e "  ${cyan}6.${plain} 🚀 终极大招: 一键满血装载所有协议   ${cyan}[大满贯引擎]${plain}"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "                 🛡️  【 战术外挂与运维模块 】"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "  ${cyan}a.${plain} 🌍 挂载 Acme 真实证书    |  ${cyan}f.${plain} 🖨️ 一键提取全节点链接"
+    echo -e "  ${cyan}b.${plain} 🔄 一键换皮 (防探针装甲) |  ${cyan}g.${plain} 📺 流媒体/AI 解锁测试"
+    echo -e "  ${cyan}c.${plain} ⚡ 开启 BBR 狂暴加速     |  ${cyan}h.${plain} 🕵️ 节点哨兵 ${TG_RADAR_STAT}"
+    echo -e "  ${cyan}d.${plain} 🛡️ 挂载 WARP 优选解锁    |  ${cyan}i.${plain} 🔄 OTA 热更新引擎"
+    echo -e "  ${cyan}e.${plain} ☁️ 挂载 Argo 防封复活甲  |  ${cyan}j.${plain} 📖 避坑指南与面板说明"
+    echo -e "${cyan}----------------------------------------------------------------------${plain}"
+    echo -e "  ${cyan}k.${plain} 🗑️ ${red}彻底粉碎卸载${plain}           |  ${cyan}0.${plain} 🔙 退出终端"
+    echo -e "${cyan}======================================================================${plain}"
+    
+    read -p "👉 执行指令 [0-6, a-k]: " choice
     case "$choice" in
         1) install_vless_reality; read -p "👉 按回车返回大屏..." ;;
         2) install_hysteria2; read -p "👉 按回车返回大屏..." ;;
         3) install_tuic_v5; read -p "👉 按回车返回大屏..." ;;
         4) install_vmess_ws; read -p "👉 按回车返回大屏..." ;;
         5) install_trojan_reality; read -p "👉 按回车返回大屏..." ;;
-        6) apply_acme_cert ;;
-        7) install_all_nodes ;;
-        c|C) reset_random_sni ;;
-        b|B) enable_bbr ;;
-        w|W) enable_warp ;;
-        a|A) enable_argo ;;
-        t|T) test_media_unlock ;;  
-        s|S) node_sentinel ;;
-        8) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
-        9) update_ota ;;
-        10) uninstall_vne; read -p "👉 按回车退出..."; break ;;
-        h|H) show_help ;;
+        6) install_all_nodes ;;
+        a|A) apply_acme_cert ;;
+        b|B) reset_random_sni ;;
+        c|C) enable_bbr ;;
+        d|D) enable_warp ;;
+        e|E) enable_argo ;;
+        f|F) export_all_nodes; read -p "👉 提取完毕，按回车返回..." ;;
+        g|G) test_media_unlock ;;  
+        h|H) node_sentinel ;;
+        i|I) update_ota ;;
+        j|J) show_help ;;
+        k|K) uninstall_vne; read -p "👉 按回车退出..."; break ;;
         0) break ;;
-        *) echo -e "${red}❌ 无效输入！${plain}"; sleep 1 ;;
+        *) echo -e "${red}❌ 无效指令，已触发物理拦截机制！${plain}"; sleep 1 ;;
     esac
 done
