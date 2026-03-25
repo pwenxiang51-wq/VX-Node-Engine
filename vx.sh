@@ -1288,11 +1288,11 @@ function node_sentinel() {
                     echo -e "${cyan}----------------------------------------------------------------------${plain}"
                     local i=1
                     for ip in $raw_ips; do
-                        local info=$(curl -s4m3 "https://ipapi.co/$ip/json/")
-                        local country=$(echo "$info" | jq -r '.country_name // "未知国家"')
-                        local region=$(echo "$info" | jq -r '.region // "未知省份"')
+                        local info=$(curl -s4m3 "http://ip-api.com/json/$ip?lang=zh-CN")
+                        local country=$(echo "$info" | jq -r '.country // "未知国家"')
+                        local region=$(echo "$info" | jq -r '.regionName // "未知省份"')
                         local city=$(echo "$info" | jq -r '.city // "未知城市"')
-                        local isp=$(echo "$info" | jq -r '.org // "未知运营商"')
+                        local isp=$(echo "$info" | jq -r '.isp // "未知运营商"')
                         printf " ${yellow}[%02d]${plain} | %-15s | %-20s | %s\n" "$i" "$ip" "$country $region $city" "$isp"
                         let i++
                     done
@@ -1346,11 +1346,11 @@ journalctl -u vx-core.service -f -n 0 | grep --line-buffered "inbound connection
     
     if ! grep -q "^$IP$" /root/.vx_known_ips 2>/dev/null; then
         echo "$IP" >> /root/.vx_known_ips
-       INFO=$(curl -s4m3 "https://ipapi.co/$IP/json/")
-        COUNTRY=$(echo "$INFO" | jq -r '.country_name // "未知国家"')
-        REGION=$(echo "$INFO" | jq -r '.region // "未知省份"')
+       INFO=$(curl -s4m3 "http://ip-api.com/json/$IP?lang=zh-CN")
+        COUNTRY=$(echo "$INFO" | jq -r '.country // "未知国家"')
+        REGION=$(echo "$INFO" | jq -r '.regionName // "未知省份"')
         CITY=$(echo "$INFO" | jq -r '.city // "未知城市"')
-        ISP=$(echo "$INFO" | jq -r '.org // "未知运营商"')
+        ISP=$(echo "$INFO" | jq -r '.isp // "未知运营商"')
         
         MSG="🚨 <b>[VX 智能雷达触发]</b>
 大佬，侦测到【全新 IP】接入您的节点！
