@@ -1147,9 +1147,7 @@ function export_all_nodes() {
     echo -e "${cyan}=============================================================${plain}"
 }
 
-# ==================================================
-# 🗑️ 终极自毁程序: 彻底卸载与清理 (寸草不生版)
-# ==================================================
+# === 🗑️ [修正版] 终极自毁程序: 彻底卸载与清理 (寸草不生版) ===
 function uninstall_vne() {
     clear
     echo -e "${red}======================================================================${plain}"
@@ -1158,7 +1156,7 @@ function uninstall_vne() {
     echo -e "${yellow}⚠️ 警告：此操作将执行最彻底的物理级拔管！"
     echo -e "以下防弹装甲将被连根拔起，化为灰烬：${plain}"
     echo -e "  💀 核心引擎：VLESS / Hys2 / TUIC / VMess / Trojan (Sing-box/VX)"
-    echo -e "  💀 战术外挂：Acme 证书 / Argo 隧道 / WARP 优选 / TG 节点哨兵"
+    echo -e "  💀 战术外挂：Acme 证书 / Argo 隧道 / WARP 优选 / TG 哨兵 / 订阅服务"
     echo -e "  💀 运维残留：所有配置文件、定时任务、快捷指令"
     echo -e "${cyan}注：BBR 底层网络优化属于系统内核级增益，将为您永久保留。${plain}"
     echo -e "${red}======================================================================${plain}"
@@ -1171,53 +1169,47 @@ function uninstall_vne() {
     fi
 
     echo -e "\n${yellow}>>> 💥 [1/5] 正在启动猎杀程序，物理拔管所有核心进程...${plain}"
-    # 无差别火力覆盖：停掉所有可能运行的服务
-    systemctl stop vx-core sing-box cloudflared warp-svc wg-quick@wgcf vx-tg 2>/dev/null
-    systemctl disable vx-core sing-box cloudflared warp-svc wg-quick@wgcf vx-tg 2>/dev/null
-    # 清理 Systemd 守护进程文件
-    rm -f /etc/systemd/system/vx-core.service
-    rm -f /etc/systemd/system/sing-box.service
-    rm -f /etc/systemd/system/cloudflared.service
-    rm -f /etc/systemd/system/vx-tg.service
+    # 猎杀所有可能运行的服务 (使用变量)
+    systemctl stop vx-core cloudflared warp-svc vx-sub vx-sub-https vx-argo vx-tg-sentinel 2>/dev/null
+    systemctl disable vx-core cloudflared warp-svc vx-sub vx-sub-https vx-argo vx-tg-sentinel 2>/dev/null
+    # 清理 Systemd 守护进程文件 (使用变量精准删除)
+    rm -f "$SERVICE_FILE" /etc/systemd/system/cloudflared.service /etc/systemd/system/vx-tg-sentinel.service /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub.service /etc/systemd/system/vx-sub-https.service 2>/dev/null
     systemctl daemon-reload
 
     echo -e "${yellow}>>> 💥 [2/5] 正在粉碎战术外挂 (Argo / WARP / Acme)...${plain}"
-    # 爆破 Argo 隧道
-    rm -rf /etc/cloudflared 2>/dev/null
+    # 爆破 Argo 隧道与 Cloudflared 二进制
+    rm -rf /etc/cloudflared /root/.cloudflared 2>/dev/null
     rm -f /usr/local/bin/cloudflared /usr/bin/cloudflared 2>/dev/null
     
-    # 爆破 WARP (兼容 warp-cli 和 wgcf 两种主流形态)
-    if command -v warp-cli &> /dev/null; then
-        warp-cli disconnect 2>/dev/null
-        apt-get purge -y cloudflare-warp 2>/dev/null
-    fi
-    if command -v wg-quick &> /dev/null; then
-        wg-quick down wgcf 2>/dev/null
-        rm -rf /etc/wireguard/wgcf* 2>/dev/null
-    fi
+    # 爆破 WARP
+    if command -v warp-cli &> /dev/null; then warp-cli disconnect 2>/dev/null; apt-get purge -y cloudflare-warp 2>/dev/null; fi
+    if command -v wg-quick &> /dev/null; then wg-quick down wgcf 2>/dev/null; rm -rf /etc/wireguard/wgcf* 2>/dev/null; fi
 
-    # 爆破 Acme.sh 证书申请工具
-    if [[ -f ~/.acme.sh/acme.sh ]]; then
-        ~/.acme.sh/acme.sh --uninstall 2>/dev/null
-    fi
+    # 爆破 Acme.sh
+    if [[ -f ~/.acme.sh/acme.sh ]]; then ~/.acme.sh/acme.sh --uninstall 2>/dev/null; fi
     rm -rf ~/.acme.sh 2>/dev/null
 
     echo -e "${yellow}>>> 💥 [3/5] 正在焦土化清理定时任务 (OTA与雷达哨兵)...${plain}"
-    # 精准剔除 crontab 中带有 acme.sh、vx 或 tg 哨兵的计划任务
-    crontab -l 2>/dev/null | grep -v "acme.sh" | grep -v "vx" | grep -v "tg" | crontab -
+    crontab -l 2>/dev/null | grep -vE "acme.sh|vx|tg" | crontab -
 
-    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件与控制台指令...${plain}"
-    # 抹除脚本生成的目录和快捷命令 (根据你的实际路径，通常是 /etc/vx)
-    rm -rf /etc/vx 2>/dev/null
-    rm -rf /usr/local/vx 2>/dev/null
+    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
+    # 【致命错误修正】：精准抹除 /etc/velox_vne，决不能硬编码写 /etc/vx
+    rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
+    rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
+    rm -rf /usr/local/vx /tmp/sing-box* 2>/dev/null
+    rm -f /usr/local/bin/vx-tg-sentinel.sh 2>/dev/null
+
+    # 抹除核心控制台指令
     rm -f /usr/local/bin/vx 2>/dev/null
     rm -f /usr/bin/vx 2>/dev/null
 
     echo -e "\n${green}🎉 [5/5] 焦土化清理竣工！系统已恢复至出厂级纯净状态！${plain}"
     echo -e "${cyan}山高水长，江湖再见！退网保平安！${plain}"
     
-    # 极客自毁逻辑：拔枪自尽，连运行中的脚本本体也一起删掉
-    rm -f "$0"
+    # 【极客优化版自毁】：先解绑文件描述符，再安静地离开
+    # 这样可以彻底解决 Operation not permitted 的报错
+    unset functions
+    (sleep 1 && rm -f "$0") & 
     exit 0
 }
 
