@@ -474,7 +474,7 @@ EOF
     sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
-    echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
+    echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取节点链接！${plain}"
 }
 
 function install_hysteria2() {
@@ -503,7 +503,7 @@ EOF
     sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
-    echo -e "\n${green}✅ Hysteria2 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
+    echo -e "\n${green}✅ Hysteria2 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取节点链接！${plain}"
 }
 
 function install_tuic_v5() {
@@ -533,7 +533,7 @@ EOF
     sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
-    echo -e "\n${green}✅ TUIC v5 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
+    echo -e "\n${green}✅ TUIC v5 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取节点链接！${plain}"
 }
 
 function install_vmess_ws() {
@@ -561,7 +561,7 @@ EOF
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ VMess-WS (纯净直连版) 装载完成！现在你可以直接把它套入 Cloudflare CDN。${plain}"
-    echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
+    echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取节点链接！${plain}"
 }
 
 function install_trojan_reality() {
@@ -589,7 +589,7 @@ EOF
     sed -i '/^trojan:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
-    echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【8】提取节点链接！${plain}"
+    echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取节点链接！${plain}"
 }
 
 
@@ -687,7 +687,7 @@ function install_all_nodes() {
     update_sub
     echo -e "\n${green}✅ 大满贯全量装载完成！防火墙已被打穿，五大神级协议已全部就绪！${plain}"
     echo -e "\n${yellow}💡 【云大厂架构师警告】: 若您的 VPS 位于 AWS / GCP / Oracle 等云环境，请务必前往云控制台的 [安全组/VPC防火墙] 放行上述端口！否则流量将被物理阻断！${plain}"
-    echo -e "👉 ${yellow}提示: 请按回车返回主菜单，直接按【8】提取所有节点链接！${plain}"
+    echo -e "👉 ${yellow}提示: 请按回车返回主菜单，直接按【f】提取所有节点链接！${plain}"
     read -p ""
 }
 
@@ -1029,7 +1029,7 @@ EOF
     fi
     echo -e "${cyan}🌐 专属防御域名: ${plain}${green}${ARGO_DOMAIN}${plain}"
     echo -e "${yellow}💡 极客提示: 节点已内置高通透免流 IP (www.visa.com) 以确保小白即连即用。${plain}"
-    read -p "👉 按回车返回大屏，按【8】即可提取这个复活甲节点..."
+    read -p "👉 按回车返回大屏，按【f】即可提取这个复活甲节点..."
 }
 
 # ==================================================
@@ -1152,60 +1152,72 @@ function export_all_nodes() {
 # ==================================================
 function uninstall_vne() {
     clear
-    echo -e "${cyan}======================================================================${plain}"
-    echo -e "             🗑️ 正在执行 Velox (VX) 引擎终极粉碎协议"
-    echo -e "${cyan}======================================================================${plain}"
+    echo -e "${red}======================================================================${plain}"
+    echo -e "                 🗑️ 【 极客警告：终极焦土化卸载程序 】"
+    echo -e "${red}======================================================================${plain}"
+    echo -e "${yellow}⚠️ 警告：此操作将执行最彻底的物理级拔管！"
+    echo -e "以下防弹装甲将被连根拔起，化为灰烬：${plain}"
+    echo -e "  💀 核心引擎：VLESS / Hys2 / TUIC / VMess / Trojan (Sing-box/VX)"
+    echo -e "  💀 战术外挂：Acme 证书 / Argo 隧道 / WARP 优选 / TG 节点哨兵"
+    echo -e "  💀 运维残留：所有配置文件、定时任务、快捷指令"
+    echo -e "${cyan}注：BBR 底层网络优化属于系统内核级增益，将为您永久保留。${plain}"
+    echo -e "${red}======================================================================${plain}"
     
-    echo -e "${yellow}⚠️ 警告: 此操作将不可逆地删除本脚本产生的所有节点、证书、隧道及配置！${plain}"
-    read -p "❓ 确认要彻底卸载吗？(y/n) [默认 n]: " uninstall_choice
-    if [[ "$uninstall_choice" != [Yy] ]]; then
-        echo -e "${green}>>> 操作已取消，感谢继续使用！${plain}"
+    read -p "👉 最后确认：是否执行终极焦土化清理？(y/N): " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+        echo -e "${green}✅ 操作已取消，防弹装甲继续为您服役。${plain}"
+        sleep 1
         return
     fi
 
-    echo -e "${yellow}>>> [1/5] 正在终止并拆除底层守护进程...${plain}"
-    # 👇 加上 vx-sub.service 和 vx-sub-https.service
-    systemctl stop vx-core.service vx-argo.service vx-sub.service vx-sub-https.service >/dev/null 2>&1
-    systemctl disable vx-core.service vx-argo.service vx-sub.service vx-sub-https.service >/dev/null 2>&1
-    
-    # 👇 加上订阅服务的残余文件清理
-    rm -f $SERVICE_FILE /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub*.service
+    echo -e "\n${yellow}>>> 💥 [1/5] 正在启动猎杀程序，物理拔管所有核心进程...${plain}"
+    # 无差别火力覆盖：停掉所有可能运行的服务
+    systemctl stop vx-core sing-box cloudflared warp-svc wg-quick@wgcf vx-tg 2>/dev/null
+    systemctl disable vx-core sing-box cloudflared warp-svc wg-quick@wgcf vx-tg 2>/dev/null
+    # 清理 Systemd 守护进程文件
+    rm -f /etc/systemd/system/vx-core.service
+    rm -f /etc/systemd/system/sing-box.service
+    rm -f /etc/systemd/system/cloudflared.service
+    rm -f /etc/systemd/system/vx-tg.service
     systemctl daemon-reload
 
-    echo -e "${yellow}>>> [2/5] 正在安全剥离 WARP 与 Argo 核心组件...${plain}"
-    # 彻底卸载 Cloudflare WARP
+    echo -e "${yellow}>>> 💥 [2/5] 正在粉碎战术外挂 (Argo / WARP / Acme)...${plain}"
+    # 爆破 Argo 隧道
+    rm -rf /etc/cloudflared 2>/dev/null
+    rm -f /usr/local/bin/cloudflared /usr/bin/cloudflared 2>/dev/null
+    
+    # 爆破 WARP (兼容 warp-cli 和 wgcf 两种主流形态)
     if command -v warp-cli &> /dev/null; then
-        warp-cli disconnect >/dev/null 2>&1
-        if command -v apt-get &> /dev/null; then
-            apt-get purge -y cloudflare-warp >/dev/null 2>&1
-        else
-            yum remove -y cloudflare-warp >/dev/null 2>&1
-        fi
-        rm -rf /var/lib/cloudflare-warp
-        rm -f /etc/apt/sources.list.d/cloudflare-client.list # 斩断更新源
+        warp-cli disconnect 2>/dev/null
+        apt-get purge -y cloudflare-warp 2>/dev/null
     fi
-    # 删除 Argo (Cloudflared) 二进制文件
-    rm -f /usr/local/bin/cloudflared
-
-    echo -e "${yellow}>>> [3/5] 正在注销 ACME 证书续签任务 (防流氓驻留)...${plain}"
-    if [[ -d "$HOME/.acme.sh" ]]; then
-        "$HOME/.acme.sh/acme.sh" --uninstall >/dev/null 2>&1
-        rm -rf "$HOME/.acme.sh"
+    if command -v wg-quick &> /dev/null; then
+        wg-quick down wgcf 2>/dev/null
+        rm -rf /etc/wireguard/wgcf* 2>/dev/null
     fi
 
-    echo -e "${yellow}>>> [4/5] 正在还原系统网络内核 (剥离 BBR 参数)...${plain}"
-    sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
-    sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
-    sysctl -w net.ipv4.tcp_congestion_control=cubic >/dev/null 2>&1
-    sysctl -p >/dev/null 2>&1
+    # 爆破 Acme.sh 证书申请工具
+    if [[ -f ~/.acme.sh/acme.sh ]]; then
+        ~/.acme.sh/acme.sh --uninstall 2>/dev/null
+    fi
+    rm -rf ~/.acme.sh 2>/dev/null
 
-    echo -e "${yellow}>>> [5/5] 正在粉碎配置数据与环境变量...${plain}"
-    rm -rf $CONF_DIR
-    rm -f $BIN_FILE
-    rm -f /usr/local/bin/vx
+    echo -e "${yellow}>>> 💥 [3/5] 正在焦土化清理定时任务 (OTA与雷达哨兵)...${plain}"
+    # 精准剔除 crontab 中带有 acme.sh、vx 或 tg 哨兵的计划任务
+    crontab -l 2>/dev/null | grep -v "acme.sh" | grep -v "vx" | grep -v "tg" | crontab -
 
-    echo -e "\n${green}✅ 卸载完毕！VX 核心、各协议节点、隧道、证书、源文件已彻底挫骨扬灰！系统已恢复至出厂纯净态。${plain}"
-    echo -e "${cyan}💡 山高水长，江湖再见！${plain}"
+    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件与控制台指令...${plain}"
+    # 抹除脚本生成的目录和快捷命令 (根据你的实际路径，通常是 /etc/vx)
+    rm -rf /etc/vx 2>/dev/null
+    rm -rf /usr/local/vx 2>/dev/null
+    rm -f /usr/local/bin/vx 2>/dev/null
+    rm -f /usr/bin/vx 2>/dev/null
+
+    echo -e "\n${green}🎉 [5/5] 焦土化清理竣工！系统已恢复至出厂级纯净状态！${plain}"
+    echo -e "${cyan}山高水长，江湖再见！退网保平安！${plain}"
+    
+    # 极客自毁逻辑：拔枪自尽，连运行中的脚本本体也一起删掉
+    rm -f "$0"
     exit 0
 }
 
@@ -1215,27 +1227,25 @@ function uninstall_vne() {
 function show_help() {
     clear
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "         📖 Velox Node Engine (VX) 使用说明与避坑指南"
+    echo -e "             📖 VeloX Node Engine (VX) 极客避坑指南与战术板"
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "${yellow}💡 1. 协议选择指南：${plain}"
-    echo -e "  - ${green}VLESS-Reality${plain}: 当前最稳防封协议，免域名免证书，小白无脑首选。"
-    echo -e "  - ${green}Hysteria-2${plain}: 暴力协议，专治晚高峰拥堵。需配合证书使用。"
-    echo -e "  - ${green}TUIC v5${plain}: 现代级 QUIC 协议，极致抗丢包。需配合证书使用。"
-    echo -e "  - ${green}VMess-WS${plain}: 纯净明文基座，主要用于套用 CDN 或者挂载 Argo 复活甲。"
-    echo -e "  - ${green}Trojan-Reality${plain}: 老牌神级协议的隐身进化版，抗封锁能力极强。"
+    echo -e "${yellow}💡 1. 协议选择战术逻辑：${plain}"
+    echo -e "  - ${green}VLESS / Trojan${plain}: 伪装苹果域名，走 TCP 协议，适合日常主力，稳如老狗。"
+    echo -e "  - ${green}Hysteria2 / TUIC${plain}: 走 UDP 协议，无视晚高峰拥堵，专治各种线路炸裂。配合【一键换皮】食用最佳。"
+    echo -e "  - ${green}VMess-WS${plain}: 纯净明文基座，主要是为了套 CDN 或者挂载 Argo 隧道使用的底层框架。"
     echo -e ""
-    echo -e "${red}⚠️ 2. NAT 服务器用户 (端口受限) 特别避坑提示：${plain}"
-    echo -e "  如果您的 VPS 是端口受限的小鸡，${red}绝对不要使用 [7] 一键大满贯功能！${plain}"
-    echo -e "  (因为大满贯采用全随机端口)。请使用 ${green}[1]-[5] 独立部署${plain}，并在提示时手动"
-    echo -e "  输入您的可用端口！或者直接使用 ${purple}[a] Argo 隧道${plain}，彻底无视本地端口限制！"
+    echo -e "${red}⚠️ 2. NAT 小鸡（端口受限）生死红线：${plain}"
+    echo -e "  如果你的 VPS 是端口受限的 NAT 机器，${red}绝对不要按【6】一键大满贯！${plain}"
+    echo -e "  请使用【1】-【5】独立部署，并手动输入可用端口！或者直接挂载【e】Argo 隧道穿透防火墙！"
     echo -e ""
-    echo -e "${yellow}🛡️ 3. 附加高级功能说明：${plain}"
-    echo -e "  - ${green}ACME 证书申请${plain}: 填入真实域名，申请成功后，Hys2 和 TUIC 会自动挂载。"
-    echo -e "  - ${green}BBR 狂暴加速${plain}: 强烈建议所有机器开启，免费提升全局网络吞吐量。"
-    echo -e "  - ${green}WARP 分流解锁${plain}: 遇到 ChatGPT 拒绝访问、Netflix 无法播放时开启。"
-    echo -e "  - ${green}Argo 隧道复活甲${plain}: IP 惨遭墙杀断网时的救命稻草，套上立马满血复活！"
+    echo -e "${blue}🛡️ 3. 战术外挂功能详解：${plain}"
+    echo -e "  - ${cyan}[b] 一键换皮${plain}: 当 UDP 节点变慢或被墙阻断时，瞬间重置底层防探针乱码 SNI，金蝉脱壳！"
+    echo -e "  - ${cyan}[c] BBR 加速${plain}: 强行修改内核拥塞控制算法，压榨 VPS 最后一滴带宽极限。"
+    echo -e "  - ${cyan}[d] WARP 解锁${plain}: 给你的 VPS 套上 Cloudflare 的原生 IP 外衣，秒解 ChatGPT 和 Netflix。"
+    echo -e "  - ${cyan}[e] Argo 复活甲${plain}: 即使 IP 惨遭 GFW 封杀物理断网，套上它立刻原地满血复活！"
+    echo -e "  - ${cyan}[h] 节点哨兵${plain}: 挂载 TG 机器人，全天候监控你的 VPS 有没有被墙或者被扫端口。"
     echo -e "${cyan}======================================================================${plain}"
-    read -p "👉 阅毕，按回车键返回主菜单..."
+    read -p "👉 阅毕，请按回车键返回指挥中心..."
 }
 
 # ==================================================
@@ -1473,7 +1483,7 @@ function reset_random_sni() {
     systemctl restart vx-core.service
 
     echo -e "\n${green}🎉 换皮竣工！UDP 协议已满血复活，旧特征已被彻底物理销毁！${plain}"
-    echo -e "${red}⚠️ 警告：请务必返回菜单按【8】提取最新节点，旧节点已阵亡！${plain}"
+    echo -e "${red}⚠️ 警告：请务必返回菜单按【f】提取最新节点，旧节点已阵亡！${plain}"
     read -p "👉 按回车返回大屏..."
 }
 
