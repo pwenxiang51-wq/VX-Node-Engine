@@ -1102,8 +1102,11 @@ function update_ota() {
     fi
 
     echo -e "\n${cyan}======================================================================${plain}"
-    echo -e "提示：若面板代码有变动，请在返回后输入 ${green}vx${plain} 重新进入以加载最新菜单。"
-    read -p "👉 按回车返回大屏..."
+    echo -e "🚀 ${green}准备就绪！正在启动热重载引擎 (Hot Reloading)...${plain}"
+    sleep 1.5
+    
+    # 💥 极客魔法：直接夺舍当前进程，加载最新版面板
+    exec /usr/local/bin/vx
 }
 
 # ==================================================
@@ -1205,6 +1208,12 @@ function uninstall_vne() {
 
     echo -e "\n${green}🎉 [5/5] 焦土化清理竣工！系统已恢复至出厂级纯净状态！${plain}"
     echo -e "${cyan}山高水长，江湖再见！退网保平安！${plain}"
+
+    # 👇 极客级 UX 优化：留下复活传送门
+    echo -e "${purple}----------------------------------------------------------------------${plain}"
+    echo -e "${yellow}💡 若需重新满血装载 VeloX 引擎，请直接复制并执行下方指令：${plain}"
+    echo -e "${green}bash <(curl -sL https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh)${plain}"
+    echo -e "${purple}----------------------------------------------------------------------${plain}\n"
     
     # 【极客优化版自毁】：先解绑文件描述符，再安静地离开
     # 这样可以彻底解决 Operation not permitted 的报错
