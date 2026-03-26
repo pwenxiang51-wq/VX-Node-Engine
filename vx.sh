@@ -1521,7 +1521,7 @@ while true; do
     echo -e "${cyan}----------------------------------------------------------------------${plain}"
     echo -e "                 🛡️  【 战术外挂与运维模块 】"
     echo -e "${cyan}----------------------------------------------------------------------${plain}"
-    echo -e "  ${cyan}a.${plain} 🌍 挂载 Acme 真实证书    |  ${cyan}f.${plain} 🖨️ 一键提取全节点链接"
+    echo -e "  ${cyan}a.${plain} 🌍 挂载 Acme 真实证书    |  ${cyan}f.${plain} 🖨️ ${blue}一键提取节点${plain} ${green}[核心]${plain}"
     echo -e "  ${cyan}b.${plain} 🔄 一键换皮 (防探针装甲) |  ${cyan}g.${plain} 📺 流媒体/AI 解锁测试"
     echo -e "  ${cyan}c.${plain} ⚡ 开启 BBR 狂暴加速     |  ${cyan}h.${plain} 🕵️ 节点哨兵 ${TG_RADAR_STAT}"
     echo -e "  ${cyan}d.${plain} 🛡️ 挂载 WARP 优选解锁    |  ${cyan}i.${plain} 🔄 OTA 热更新引擎"
