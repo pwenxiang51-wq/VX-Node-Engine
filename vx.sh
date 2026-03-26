@@ -1215,10 +1215,11 @@ function uninstall_vne() {
     echo -e "${green}bash <(curl -sL https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh)${plain}"
     echo -e "${purple}----------------------------------------------------------------------${plain}\n"
     
-    # 【极客优化版自毁】：先解绑文件描述符，再安静地离开
-    # 这样可以彻底解决 Operation not permitted 的报错
+    # 【极客优化版自毁】：智能侦测虚拟管道，彻底消灭 fd 报错
     unset functions
-    (sleep 1 && rm -f "$0") & 
+    if [[ "$0" != /dev/fd/* && -f "$0" ]]; then
+        (sleep 1 && rm -f "$0") &
+    fi
     exit 0
 }
 
