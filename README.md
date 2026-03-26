@@ -1,6 +1,6 @@
-# 🚀 Velox Node Engine (VX) - 极速节点构建引擎 (V4.3.2 究极完全体)
+# 🚀 Velox Node Engine (VX) - 极速节点构建引擎 (V4.4 究极完全体)
 
-[![Version: V4.3.2](https://img.shields.io/badge/Version-V4.3.2-blue.svg)](https://github.com/pwenxiang51-wq/VX-Node-Engine)
+[![Version: V4.4](https://img.shields.io/badge/Version-V4.4-blue.svg)](https://github.com/pwenxiang51-wq/VX-Node-Engine)
 [![Core: Sing-box](https://img.shields.io/badge/Core-Sing--box-purple.svg)](https://github.com/SagerNet/sing-box)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Language: Bash](https://img.shields.io/badge/Language-Bash-green.svg)](https://www.gnu.org/software/bash/)
@@ -51,7 +51,7 @@ Velox Node Engine (VX) 是一款专为极客打造的轻量化、全自动化代
 
 ---
 
-## ✨ V4.3.2 究极进化亮点
+## ✨ V4.4究极进化亮点
 * 🛡️ **Argo 双轨引擎重构**：完美打通 Cloudflare Zero Trust 固定隧道，支持企业级内网穿透保活。
 * 👻 **幽灵节点粉碎技术**：手写底层 Base64 智能解密安检，彻底消灭历史残留死链。
 * 🧠 **智能域名嗅探**：临时隧道采用 `tail` 级动态抓取，永远只提取最新鲜的存活域名。
