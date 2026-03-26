@@ -1,7 +1,7 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V4.3.2 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V4.4 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
 # =======================================================
 
 
@@ -27,7 +27,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="4.3.2"
+VX_VERSION="4.4"
 
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
