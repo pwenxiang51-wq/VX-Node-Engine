@@ -832,7 +832,7 @@ function enable_warp() {
     jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" | atomic_jq
 
     # 【最稳妥：神级关键词分流 + 强制底层流量嗅探】彻底解决多端 DNS 泄露导致的分流失效
-jq '.outbounds = [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}, {"type":"direct","tag":"direct"}, {"type":"block","tag":"block"}] | .route.rules = [{"domain_keyword":["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"],"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"],"outbound":"warp-socks"}] | .inbounds |= map(. + {"sniff":{"enabled":true,"override_destination":true}})' "$JSON_FILE" | atomic_jq
+jq '.outbounds = [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}, {"type":"direct","tag":"direct"}, {"type":"block","tag":"block"}] | .route.rules = [{"action":"sniff"}] + [{"domain_keyword":["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"],"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"],"outbound":"warp-socks"}]' "$JSON_FILE" | atomic_jq
     # 4. 重启生效
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
     systemctl restart vx-core.service
