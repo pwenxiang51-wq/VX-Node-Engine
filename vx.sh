@@ -1404,16 +1404,17 @@ journalctl -u vx-core.service -f -n 0 | grep --line-buffered "inbound connection
         CITY=$(echo "$INFO" | jq -r '.city // "未知城市"')
         ISP=$(echo "$INFO" | jq -r '.isp // "未知运营商"')
         
+HOST_NAME=$(hostname)
         MSG="🚨 <b>[VX 智能雷达触发]</b>
 大佬，侦测到【全新 IP】接入您的节点！
 
+🖥️ <b>受访阵地:</b> <code>${HOST_NAME}</code>
 👉 <b>来源 IP:</b> <code>$IP</code>
 🌍 <b>归属地:</b> $COUNTRY $REGION $CITY
 🏢 <b>运营商:</b> $ISP
 ⏰ <b>北京时间:</b> $(date +'%Y-%m-%d %H:%M:%S')
 
 <i>(注：您分享的新用户，或您的宽带动态 IP 变更，都会触发此警报)</i>"
-
         curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d chat_id="${GLOBAL_TG_CHATID}" -d text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
     fi
 done
