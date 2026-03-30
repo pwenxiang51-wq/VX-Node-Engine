@@ -1324,9 +1324,10 @@ function node_sentinel() {
         echo -e "  ${cyan}3.${plain} 📡 部署/拆除：全自动 TG 雷达哨兵 ${DAEMON_STAT}"
         echo -e "      ${yellow}└─ 开启后只要有【分享的新用户 / 宽带变IP】连入，自动报警！${plain}"
         echo -e "  ${purple}4.${plain} 🧹 清理已知 IP 缓存 (让旧 IP 重新触发 TG 报警)"
+        echo -e "  ${blue}5.${plain} ⚙️ 更改/删除 TG 机器人配置 (全局凭证池管理)"
         echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
         echo -e "${cyan}----------------------------------------------------------------------${plain}"
-        read -p "👉 请选择操作 [0-4]: " sen_choice
+        read -p "👉 请选择操作 [0-5]: " sen_choice
 
         case "$sen_choice" in
             1)
@@ -1356,9 +1357,9 @@ function node_sentinel() {
                echo -e "\n${cyan}>>> 正在进入动态日志追踪模式 (按 Ctrl+C 退出)...${plain}"
                trap 'echo -e "\n安全返回哨兵菜单..."' INT
                TZ="Asia/Shanghai" journalctl -u vx-core.service -f | grep --line-buffered "inbound connection from"
-                trap - INT
-                sleep 1
-                ;;
+               trap - INT
+               sleep 1
+               ;;
              3)
                 if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
                     echo -e "\n${yellow}>>> 正在拆除全自动后台雷达...${plain}"
@@ -1383,6 +1384,8 @@ function node_sentinel() {
                         echo "GLOBAL_TG_CHATID=\"$input_chatid\"" >> "$TG_CONF"
                         GLOBAL_TG_TOKEN="$input_token"
                         GLOBAL_TG_CHATID="$input_chatid"
+                    else
+                        echo -e "${green}✅ 检测到全局公共池凭证，已自动复用！${plain}"
                     fi
 
                     cat << 'EOF' > /usr/local/bin/vx-tg-sentinel.sh
@@ -1446,6 +1449,63 @@ EOF
                 > /root/.vx_known_ips
                 systemctl restart vx-tg-sentinel 2>/dev/null
                 echo -e "${green}✅ 清理完毕！你的手机当前 IP 只要再产生流量，就会被当作“新面孔”再次触发 TG 报警！${plain}"
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+            5)
+                echo -e "\n${cyan}=== ⚙️ TG 机器人全局凭证管理 ===${plain}"
+                if [[ -f "/etc/velox_tg.conf" ]]; then
+                    source "/etc/velox_tg.conf"
+                    echo -e "当前绑定的 Token: ${green}${GLOBAL_TG_TOKEN}${plain}"
+                    echo -e "当前绑定的 Chat ID: ${green}${GLOBAL_TG_CHATID}${plain}"
+                else
+                    echo -e "${yellow}⚠️ 当前全局池为空。${plain}"
+                fi
+                echo -e "\n请选择操作："
+                echo -e "  ${green}1.${plain} 重新输入并物理覆盖配置 (双面板联动生效)"
+                echo -e "  ${red}2.${plain} 彻底删除全局凭证 (💥 将同时强拆 VX 与 Velox 的所有预警雷达)"
+                echo -e "  ${yellow}0.${plain} 取消并返回"
+                read -p "👉 请选择 [0-2]: " cred_choice
+                case "$cred_choice" in
+                    1)
+                        read -p "🔑 请输入新的 TG Bot Token: " new_token
+                        read -p "💬 请输入新的 TG Chat ID: " new_chatid
+                        if [[ -n "$new_token" && -n "$new_chatid" ]]; then
+                            echo "GLOBAL_TG_TOKEN=\"$new_token\"" > /etc/velox_tg.conf
+                            echo "GLOBAL_TG_CHATID=\"$new_chatid\"" >> /etc/velox_tg.conf
+                            echo -e "${green}✅ 全局凭证已物理覆写！${plain}"
+                            
+                            if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null; then
+                                systemctl restart vx-tg-sentinel
+                                echo -e "${green}🔄 侦测到 VX 节点哨兵正在运行，已自动联动热重载！${plain}"
+                            fi
+                            echo -e "${green}🔄 若已部署 Velox 面板的警报防线，下次触发时也将自动使用新凭证！${plain}"
+                        else
+                            echo -e "${red}❌ 输入无效，操作已取消。${plain}"
+                        fi
+                        ;;
+                    2)
+                        rm -f /etc/velox_tg.conf
+                        echo -e "${green}🗑️ 全局 TG 配置文件已被物理蒸发！${plain}"
+                        
+                        # 跨进程联动拆除 VX 哨兵
+                        if systemctl is-active --quiet vx-tg-sentinel 2>/dev/null || [ -f "/usr/local/bin/vx-tg-sentinel.sh" ]; then
+                            systemctl stop vx-tg-sentinel >/dev/null 2>&1
+                            systemctl disable vx-tg-sentinel >/dev/null 2>&1
+                            rm -f /etc/systemd/system/vx-tg-sentinel.service /usr/local/bin/vx-tg-sentinel.sh
+                            echo -e "${yellow}⚠️ 已联动拆除 VX 节点哨兵守护进程！${plain}"
+                        fi
+                        
+                        # 跨进程联动拆除 Velox 报警
+                        if [ -f "/usr/local/bin/ssh_tg_alert.sh" ]; then
+                            sudo rm -f /usr/local/bin/ssh_tg_alert.sh /usr/local/bin/tg_boot_alert.sh /etc/systemd/system/tg_boot_alert.service
+                            sudo sed -i '/ssh_tg_alert.sh/d' /etc/profile /etc/bash.bashrc
+                            sudo systemctl disable --now tg_boot_alert.service >/dev/null 2>&1
+                            if crontab -l 2>/dev/null | grep -q "api.telegram.org"; then crontab -l 2>/dev/null | grep -v "api.telegram.org" | crontab -; fi
+                            echo -e "${yellow}⚠️ 已联动物理拔管 Velox 的 SSH 与开机报警防线！${plain}"
+                        fi
+                        systemctl daemon-reload
+                        ;;
+                esac
                 read -p "👉 按回车返回哨兵菜单..."
                 ;;
             0) break ;;
