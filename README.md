@@ -1,6 +1,6 @@
-# 🚀 Velox Node Engine (VX) - 极速节点构建引擎 (V4.4 究极完全体)
+# 🚀 Velox Node Engine (VX) - 极速节点构建引擎 (V5.0 究极完全体)
 
-[![Version: V4.4](https://img.shields.io/badge/Version-V4.4-blue.svg)](https://github.com/pwenxiang51-wq/VX-Node-Engine)
+[![Version: V5.0](https://img.shields.io/badge/Version-V5.0-blue.svg)](https://github.com/pwenxiang51-wq/VX-Node-Engine)
 [![Core: Sing-box](https://img.shields.io/badge/Core-Sing--box-purple.svg)](https://github.com/SagerNet/sing-box)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Language: Bash](https://img.shields.io/badge/Language-Bash-green.svg)](https://www.gnu.org/software/bash/)
@@ -51,7 +51,7 @@ Velox Node Engine (VX) 是一款专为极客打造的轻量化、全自动化代
 
 ---
 
-## ✨ V4.4究极进化亮点
+## ✨ V5.0究极进化亮点
 * 🛡️ **Argo 双轨引擎重构**：完美打通 Cloudflare Zero Trust 固定隧道，支持企业级内网穿透保活。
 * 👻 **幽灵节点粉碎技术**：手写底层 Base64 智能解密安检，彻底消灭历史残留死链。
 * 🧠 **智能域名嗅探**：临时隧道采用 `tail` 级动态抓取，永远只提取最新鲜的存活域名。
@@ -75,7 +75,7 @@ Velox Node Engine (VX) 是一款专为极客打造的轻量化、全自动化代
 当 VPS IP 惨遭 GFW 阻断？一键挂载 Cloudflare Argo 隧道。支持 **临时穿透模式** (小白免配，智能抓取域名) 与 **Zero Trust 固定 Token 模式** (极客专属，自有域名保活)，无需公网 IP 依然满血在线。
 
 ### 🔄 无感 OTA 双轨热更新
-面板内置极速 1.5s 架构自适应探测。只需在面板输入 `9`，即可一键全自动同步 GitHub 最新面板代码，并智能升级 Sing-box 核心至最新版 (自动适配 AMD/ARM 架构)。
+面板内置极速 1.5s 架构自适应探测。只需在面板输入 `i`，即可一键全自动同步 GitHub 最新面板代码，并智能升级 Sing-box 核心至最新版 (自动适配 AMD/ARM 架构)。
 
 ### ⚡ 原子级底层调优
 * 智能嗅探 IPv4/IPv6 双栈网络。
@@ -118,7 +118,7 @@ curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/v
 ---
 
 ⚠️ NAT 服务器用户特别提示：
-如果您使用的是端口受限的 NAT 服务器，请不要使用 [7] 一键大满贯 功能（因为其采用全随机端口）。请使用菜单 [1] - [5] 独立安装，并在提示时手动输入您被分配的可用端口。或者直接使用 [a] Argo 隧道 进行无视端口的内网穿透！
+如果您使用的是端口受限的 NAT 服务器，请不要使用 [6] 一键大满贯 功能（因为其采用全随机端口）。请使用菜单 [1] - [5] 独立安装，并在提示时手动输入您被分配的可用端口。或者直接使用 [e] Argo 隧道 进行无视端口的内网穿透！
 
 ---
 
