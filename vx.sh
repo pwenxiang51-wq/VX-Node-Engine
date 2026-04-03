@@ -1202,28 +1202,36 @@ function uninstall_vne() {
     rm -f "$SERVICE_FILE" /etc/systemd/system/cloudflared.service /etc/systemd/system/vx-tg-sentinel.service /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub.service /etc/systemd/system/vx-sub-https.service 2>/dev/null
     systemctl daemon-reload
 
-    echo -e "${yellow}>>> 💥 [2/5] 正在粉碎战术外挂 (Argo / WARP / Acme)...${plain}"
+   echo -e "${yellow}>>> 💥 [2/5] 正在粉碎战术外挂 (Argo / WARP / Acme)...${plain}"
     # 爆破 Argo 隧道与 Cloudflared 二进制
     rm -rf /etc/cloudflared /root/.cloudflared 2>/dev/null
     rm -f /usr/local/bin/cloudflared /usr/bin/cloudflared 2>/dev/null
     
-    # 爆破 WARP
+    # 爆破 WARP 及 APT 基因污染残渣 (极客补枪)
     if command -v warp-cli &> /dev/null; then warp-cli disconnect 2>/dev/null; apt-get purge -y cloudflare-warp 2>/dev/null; fi
     if command -v wg-quick &> /dev/null; then wg-quick down wgcf 2>/dev/null; rm -rf /etc/wireguard/wgcf* 2>/dev/null; fi
-
+    rm -f /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null
+    
     # 爆破 Acme.sh
     if [[ -f ~/.acme.sh/acme.sh ]]; then ~/.acme.sh/acme.sh --uninstall 2>/dev/null; fi
     rm -rf ~/.acme.sh 2>/dev/null
+    
+    # 物理超度订阅引擎的底层僵尸进程 (极客补枪)
+    pkill -9 -f "busybox httpd" 2>/dev/null
+    pkill -9 -f "socat openssl-listen" 2>/dev/null
 
     echo -e "${yellow}>>> 💥 [3/5] 正在焦土化清理定时任务 (OTA与雷达哨兵)...${plain}"
     crontab -l 2>/dev/null | grep -vE "acme.sh|vx|tg" | crontab -
 
-    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
+   echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
     # 【致命错误修正】：精准抹除 /etc/velox_vne，决不能硬编码写 /etc/vx
     rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
     rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
     rm -rf /usr/local/vx /tmp/sing-box* 2>/dev/null
     rm -f /usr/local/bin/vx-tg-sentinel.sh 2>/dev/null
+    
+    # 抹除 TG 哨兵记忆碎片与全局凭证 (极客补枪)
+    rm -f /etc/velox_tg.conf /root/.vx_known_ips 2>/dev/null
 
     # 抹除核心控制台指令
     rm -f /usr/local/bin/vx 2>/dev/null
