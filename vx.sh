@@ -1128,8 +1128,14 @@ function update_ota() {
     echo -e "🚀 ${green}准备就绪！正在启动热重载引擎 (Hot Reloading)...${plain}"
     sleep 1.5
     
-    # 💥 极客魔法：直接夺舍当前进程，加载最新版面板
-    exec /usr/local/bin/vx
+    # 💥 极客魔法：先“验尸”查语法，再“夺舍”进程，绝对防断网自毁！
+    if bash -n /usr/local/bin/vx; then
+        exec /usr/local/bin/vx
+    else
+        echo -e "\n${red}❌ 致命拦截：检测到刚拉取的新脚本存在语法错误 (可能是网络中断或 GitHub 抽风导致残缺)！${plain}"
+        echo -e "${yellow}💡 极客装甲已强行阻断热重载，成功保住了当前正在运行的面板进程！请稍后再试。${plain}"
+        read -p "👉 按【回车键】返回大屏..."
+    fi
 }
 
 # ==================================================
