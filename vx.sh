@@ -19,7 +19,7 @@ atomic_jq() {
     fi
 }
 
-red='\033[0;31m'; green='\033[0;32m'; yellow='\033[0;33m'; cyan='\033[0;36m'; blue='\033[0;94m'; purple='\033[0;35m'; plain='\033[0m'
+red='\033[0;31m'; green='\033[0;32m'; yellow='\033[1;33m'; cyan='\033[0;36m'; blue='\033[0;94m'; purple='\033[0;35m'; plain='\033[0m'
 CONF_DIR="/etc/velox_vne"
 CERT_DIR="$CONF_DIR/cert"
 BIN_FILE="/usr/local/bin/sing-box"
