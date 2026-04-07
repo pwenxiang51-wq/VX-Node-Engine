@@ -143,9 +143,9 @@ fi
     # 限时 1.5 秒抓取线上版本，超时立刻放弃，绝不卡死面板！
     SB_LATEST_VER=$(curl -s --connect-timeout 1 -m 1.5 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
 
-    UPDATE_TIPS=""
+   UPDATE_TIPS=""
     if [[ -n "$SB_LATEST_VER" && "$SB_CORE_VER" != "未安装" && "$SB_CORE_VER" != "$SB_LATEST_VER" ]]; then
-        UPDATE_TIPS=" ${red}🔥 发现新内核 v${SB_LATEST_VER}，请按 [i] 热更新！${plain}"
+        UPDATE_TIPS=" ${lyellow}🔥 发现新内核 v${SB_LATEST_VER}，请按 [i] 热更新！${plain}"
     fi
   
     echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
@@ -179,7 +179,7 @@ fi
     echo -e "   Argo 隧道: $ARGO_STAT"
     echo -e "   动态订阅 : $SUB_STAT"
     echo -e "----------------------------------------------------------------------"
-    echo -e "🛡️  ${yellow}代理引擎矩阵 (Sing-box 状态: $SB_STAT ${plain}|${yellow} 内核: ${magenta}v${SB_CORE_VER}${plain})${UPDATE_TIPS}${yellow}:${plain}"
+    echo -e "🛡️  ${yellow}代理引擎矩阵 (Sing-box 状态: $SB_STAT ${plain}|${yellow} 内核: ${cyan}v${SB_CORE_VER}${plain})${UPDATE_TIPS}${yellow}:${plain}"
     echo -e "  $VL_STAT VLESS-Reality | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
     echo -e "  $HY2_STAT Hysteria-2    | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
     echo -e "  $TUIC_STAT TUIC v5       | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
