@@ -116,7 +116,7 @@ fi
             TUIC_STAT="${green}[开启]${plain}"; TUIC_PORT=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE"); TUIC_SNI="自定义/自签"
         fi
         if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
-            VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE" | sed 's/null/CDN直连/g')
+            VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE" | sed 's/null/Argo\/CDN明文/g')
         fi
 
         if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
@@ -585,15 +585,31 @@ EOF
 
 function install_vmess_ws() {
     check_sys && install_core && init_json && get_smart_ip
-    echo -e "\n${yellow}>>> 锻造 VMess-WS (纯明文直连/CDN神盾) ：${plain}"
+    echo -e "\n${yellow}>>> 锻造 VMess-WS+TLS (满血防弹装甲) ：${plain}"
     read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
     read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
     
+    # 自动探测或注入域名装甲
+    read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    if [[ -z "$INPUT_DOMAIN" ]]; then
+        if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+            SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+            echo -e "${green}✅ 雷达锁定！已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
+        else
+            SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+            echo -e "${yellow}⚠️ 未挂载真实证书，已自动注入防探针乱码装甲: ${SNI_DOMAIN}${plain}"
+        fi
+    else
+        SNI_DOMAIN="$INPUT_DOMAIN"
+        echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
+    fi
+    
+    generate_cert_dynamic "$SNI_DOMAIN"
     WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 
-    # 移除了自签证书，改为纯净 WS 监听
+    # 原子压入带 TLS 的底层配置
     cat << EOF > /tmp/vx_tmp.json
-{"type":"vmess","tag":"vmess-in","listen":"0.0.0.0","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"}}
+{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"},"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","certificate_path":"$CERT_DIR/cert.crt","key_path":"$CERT_DIR/private.key"}}
 EOF
     jq 'del(.inbounds[] | select(.tag == "vmess-in"))' "$JSON_FILE" | atomic_jq
     jq '.inbounds += [input]' "$JSON_FILE" /tmp/vx_tmp.json | atomic_jq
@@ -601,13 +617,13 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
     
-    # 构建无 TLS 的纯净 VMess 链接
-    VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "" --arg path "$WS_PATH" --arg tls "" --arg sni "" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+    # 构建满血带 TLS 的分享链接
+    VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
     SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
     sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
-    echo -e "\n${green}✅ VMess-WS (纯净直连版) 装载完成！现在你可以直接把它套入 Cloudflare CDN。${plain}"
+    echo -e "\n${green}✅ VMess-WS+TLS 装载完成！已默认穿戴防弹装甲。${plain}"
     echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
 }
 
@@ -886,6 +902,28 @@ function enable_argo() {
             rm -f /etc/systemd/system/vx-argo.service
             systemctl daemon-reload
             
+            # === 🚀 动态装甲恢复：Argo 拆除后，自动为 VMess 重新挂载 TLS ===
+            echo -e "${yellow}>>> 正在为 VMess 重新挂载 TLS 防弹装甲...${plain}"
+            local RESTORE_SNI=""
+            if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
+                RESTORE_SNI=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
+            else
+                RESTORE_SNI="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
+                generate_cert_dynamic "$RESTORE_SNI" >/dev/null 2>&1
+            fi
+            
+            jq --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg sni "$RESTORE_SNI" '(.inbounds[] | select(.tag == "vmess-in")).tls = {"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key}' "$JSON_FILE" | atomic_jq
+            systemctl restart vx-core.service
+
+            # 清理旧链接，重铸满血 TLS 链接
+            local V_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE")
+            local V_PATH=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .transport.path' "$JSON_FILE")
+            local V_UUID=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .users[0].uuid' "$JSON_FILE")
+            get_smart_ip
+            local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$V_PORT" --arg id "$V_UUID" --arg net "ws" --arg host "$RESTORE_SNI" --arg path "$V_PATH" --arg tls "tls" --arg sni "$RESTORE_SNI" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+            sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
+            echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
+            
             # 智能清理遗留的节点链接 (修复Base64无法匹配的Bug)
         if [[ -f "$LINK_FILE" ]]; then
             mv "$LINK_FILE" "${LINK_FILE}.tmp"
@@ -918,6 +956,13 @@ function enable_argo() {
     if [[ -z "$VMESS_PORT" || "$VMESS_PORT" == "null" ]]; then
         echo -e "${red}❌ 未检测到 VMess-WS 节点！Argo 必须依托 VMess 才能运行，请先部署大满贯！${plain}"
         read -p "👉 按回车返回大屏..." && return
+    fi
+    # === 🚀 动态装甲剥离：为适配 Argo，物理剥离 VMess 的 TLS 装甲 ===
+    if jq -e '.inbounds[] | select(.tag == "vmess-in" and has("tls"))' "$JSON_FILE" >/dev/null 2>&1; then
+        echo -e "${yellow}>>> 正在智能剥离 VMess 底层 TLS 装甲，进行 Argo 物理适配...${plain}"
+        jq 'del(.inbounds[] | select(.tag == "vmess-in").tls)' "$JSON_FILE" | atomic_jq
+        systemctl restart vx-core.service
+        sleep 1
     fi
 
     # 2. 安装官方 Cloudflared 核心 (👑 核心优化：全架构智能嗅探兼容)
