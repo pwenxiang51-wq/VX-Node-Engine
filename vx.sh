@@ -1,7 +1,7 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V5.1 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V5.2 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
 # =======================================================
 
 
@@ -27,7 +27,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="5.1"
+VX_VERSION="5.2"
 
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
@@ -186,6 +186,9 @@ fi
     echo -e "  $VM_STAT VMess-WS      | 端口: ${cyan}$VM_PORT${plain} | 伪装: ${purple}$VM_SNI${plain}"
     echo -e "  $TR_STAT Trojan-Reality| 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
     echo -e "----------------------------------------------------------------------"
+    echo -e " 🌟 ${yellow}极客致敬：${plain}如果您觉得好用，请移步 GitHub 点个 ${cyan}Star${plain} ⭐"
+    echo -e " 🔗 ${blue}https://github.com/pwenxiang51-wq/VX-Node-Engine${plain}"
+    
     echo -e "${cyan}======================================================================${plain}"
 }
 
@@ -1197,6 +1200,8 @@ function export_all_nodes() {
     echo -e "${yellow}>>> 🔗 聚合 Base64 订阅编码 (供电脑端一键复制导入)：${plain}"
     B64_LINKS=$(cat "$LINK_FILE" | base64 -w 0)
     echo -e "${blue}${B64_LINKS}${plain}\n"
+    echo -e " 🚀 ${green}节点已满血复活！如果您觉得好用，请为大佬点个 Star ⭐${plain}"
+    echo -e " 🔗 项目地址: ${cyan}https://github.com/pwenxiang51-wq/VX-Node-Engine${plain}"
     echo -e "${cyan}=============================================================${plain}"
 }
 
