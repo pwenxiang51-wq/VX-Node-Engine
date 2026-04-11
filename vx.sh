@@ -128,21 +128,26 @@ fi
             TUIC_TYPE="${blue}QUIC+TLS${plain}"
         fi
         
-        if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
+     if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE")
-            # 🚀 极致嗅探：智能判断 VMess 当前的物理加密状态
+            # 🚀 极致嗅探：不再傻乎乎地去提取长域名，而是统一动态标签逻辑！
             if jq -e '.inbounds[] | select(.tag == "vmess-in" and has("tls"))' "$JSON_FILE" >/dev/null 2>&1; then
-                VM_TYPE="${green}WS+TLS${plain} "
-                VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE")
+                VM_TYPE="(${green}WS+TLS${plain})  " # 补 2 个空格对齐
+                VM_LABEL="证书"
+                VM_SNI="${purple}自定义/自签${plain}"
             else
                 if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-                    VM_TYPE="${yellow}Argo明文${plain}"
-                    VM_SNI="${yellow}由 Cloudflare 隧道强加密接管${plain}"
+                    VM_TYPE="(${yellow}Argo明文${plain})"
+                    VM_LABEL="状态"
+                    VM_SNI="${yellow}Argo 隧道接管${plain}"
                 else
-                    VM_TYPE="${red}纯WS明文${plain}"
-                    VM_SNI="${red}无保护裸奔 (建议挂载CDN)${plain}"
+                    VM_TYPE="(${red}纯WS明文${plain})"
+                    VM_LABEL="状态"
+                    VM_SNI="${red}无保护 (建议 CDN)${plain}"
                 fi
             fi
+        else
+            VM_LABEL="状态"
         fi
 
         if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
@@ -210,7 +215,7 @@ fi
     echo -e "  $VL_STAT VLESS    (${VL_TYPE}) | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
     echo -e "  $HY2_STAT Hysteria2(${HY2_TYPE}) | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
     echo -e "  $TUIC_STAT TUIC v5  (${TUIC_TYPE}) | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
-    echo -e "  $VM_STAT VMess-WS (${VM_TYPE}) | 端口: ${cyan}$VM_PORT${plain} | 伪装: $VM_SNI"
+    echo -e "  $VM_STAT VMess-WS $VM_TYPE | 端口: ${cyan}$VM_PORT${plain} | $VM_LABEL: $VM_SNI"
     echo -e "  $TR_STAT Trojan   (${TR_TYPE}) | 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
     echo -e "----------------------------------------------------------------------"
     echo -e " 🌟 ${yellow}极客致敬：${plain}如果您觉得好用，请移步 GitHub 点个 ${cyan}Star${plain} ⭐"
