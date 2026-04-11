@@ -145,7 +145,7 @@ fi
 
    UPDATE_TIPS=""
     if [[ -n "$SB_LATEST_VER" && "$SB_CORE_VER" != "未安装" && "$SB_CORE_VER" != "$SB_LATEST_VER" ]]; then
-        UPDATE_TIPS=" ${lyellow}🔥 发现新内核 v${SB_LATEST_VER}，请按 [i] 热更新！${plain}"
+        UPDATE_TIPS=" ${yellow}🔥 发现新内核 v${SB_LATEST_VER}，请按 [i] 热更新！${plain}"
     fi
   
     echo -e "${cyan}██╗   ██╗███████╗██╗     ██████╗ ██╗  ██╗${plain}"
