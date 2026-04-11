@@ -100,27 +100,54 @@ if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' 
     fi
 fi
 
+   # === ☁️ Argo 隧道细分探测 ===
     ARGO_STAT="${red}未开启 ❌${plain}"
     if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-        ARGO_STAT="${green}运行中 ✅${plain} (VMess 穿透保活)"
+        # 极客嗅探：通过检查系统守护进程的启动参数，判断是固定隧道还是临时隧道
+        if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
+            ARGO_STAT="${green}运行中 ✅${plain} ${purple}[固定隧道/ZeroTrust]${plain}"
+        else
+            ARGO_STAT="${green}运行中 ✅${plain} ${yellow}[临时隧道/TryCloudflare]${plain}"
+        fi
     fi
 
+    # === 🛡️ 节点矩阵加密状态动态嗅探 ===
     if [[ -f "$JSON_FILE" ]]; then
         if jq -e '.inbounds[] | select(.tag == "vless-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VL_STAT="${green}[开启]${plain}"; VL_PORT=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .listen_port' "$JSON_FILE"); VL_SNI=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .tls.server_name' "$JSON_FILE")
+            VL_TYPE="${purple}Reality${plain}"
         fi
+        
         if jq -e '.inbounds[] | select(.tag == "hy2-in")' "$JSON_FILE" >/dev/null 2>&1; then
             HY2_STAT="${green}[开启]${plain}"; HY2_PORT=$(jq -r '.inbounds[] | select(.tag == "hy2-in") | .listen_port' "$JSON_FILE"); HY2_SNI="自定义/自签"
+            HY2_TYPE="${blue}QUIC+TLS${plain}"
         fi
+        
         if jq -e '.inbounds[] | select(.tag == "tuic-in")' "$JSON_FILE" >/dev/null 2>&1; then
             TUIC_STAT="${green}[开启]${plain}"; TUIC_PORT=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE"); TUIC_SNI="自定义/自签"
+            TUIC_TYPE="${blue}QUIC+TLS${plain}"
         fi
+        
         if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
-            VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE"); VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE" | sed 's/null/Argo\/CDN明文/g')
+            VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE")
+            # 🚀 极致嗅探：智能判断 VMess 当前的物理加密状态
+            if jq -e '.inbounds[] | select(.tag == "vmess-in" and has("tls"))' "$JSON_FILE" >/dev/null 2>&1; then
+                VM_TYPE="${green}WS+TLS${plain} "
+                VM_SNI=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .tls.server_name' "$JSON_FILE")
+            else
+                if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+                    VM_TYPE="${yellow}Argo明文${plain}"
+                    VM_SNI="${yellow}由 Cloudflare 隧道强加密接管${plain}"
+                else
+                    VM_TYPE="${red}纯WS明文${plain}"
+                    VM_SNI="${red}无保护裸奔 (建议挂载CDN)${plain}"
+                fi
+            fi
         fi
 
         if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
             TR_STAT="${green}[开启]${plain}"; TR_PORT=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .listen_port' "$JSON_FILE"); TR_SNI=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .tls.server_name' "$JSON_FILE")
+            TR_TYPE="${purple}Reality${plain}"
         fi
     fi
 
@@ -180,11 +207,11 @@ fi
     echo -e "   动态订阅 : $SUB_STAT"
     echo -e "----------------------------------------------------------------------"
     echo -e "🛡️  ${yellow}代理引擎矩阵 (Sing-box 状态: $SB_STAT ${plain}|${yellow} 内核: ${cyan}v${SB_CORE_VER}${plain})${UPDATE_TIPS}${yellow}:${plain}"
-    echo -e "  $VL_STAT VLESS-Reality | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
-    echo -e "  $HY2_STAT Hysteria-2    | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
-    echo -e "  $TUIC_STAT TUIC v5       | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
-    echo -e "  $VM_STAT VMess-WS      | 端口: ${cyan}$VM_PORT${plain} | 伪装: ${purple}$VM_SNI${plain}"
-    echo -e "  $TR_STAT Trojan-Reality| 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
+    echo -e "  $VL_STAT VLESS    (${VL_TYPE}) | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
+    echo -e "  $HY2_STAT Hysteria2(${HY2_TYPE}) | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
+    echo -e "  $TUIC_STAT TUIC v5  (${TUIC_TYPE}) | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
+    echo -e "  $VM_STAT VMess-WS (${VM_TYPE}) | 端口: ${cyan}$VM_PORT${plain} | 伪装: $VM_SNI"
+    echo -e "  $TR_STAT Trojan   (${TR_TYPE}) | 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
     echo -e "----------------------------------------------------------------------"
     echo -e " 🌟 ${yellow}极客致敬：${plain}如果您觉得好用，请移步 GitHub 点个 ${cyan}Star${plain} ⭐"
     echo -e " 🔗 ${blue}https://github.com/pwenxiang51-wq/VX-Node-Engine${plain}"
