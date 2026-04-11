@@ -128,22 +128,27 @@ fi
             TUIC_TYPE="${blue}QUIC+TLS${plain}"
         fi
         
-     if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
+    if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE")
-            # 🚀 极致嗅探：不再傻乎乎地去提取长域名，而是统一动态标签逻辑！
+            # 🚀 极致嗅探：回归极客本源，干脆利落！
             if jq -e '.inbounds[] | select(.tag == "vmess-in" and has("tls"))' "$JSON_FILE" >/dev/null 2>&1; then
-                VM_TYPE="(${green}WS+TLS${plain})  " # 补 2 个空格对齐
+                VM_TYPE="(${green}WS+TLS${plain})  " # 补 2 个空格，占 10 字符宽
                 VM_LABEL="证书"
                 VM_SNI="${purple}自定义/自签${plain}"
             else
                 if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-                    VM_TYPE="(${yellow}Argo明文${plain})"
+                    VM_TYPE="(${yellow}Argo接管${plain})" # 中英文混排，天生 10 字符宽，无需补空格
                     VM_LABEL="状态"
-                    VM_SNI="${yellow}Argo 隧道接管${plain}"
+                    # 动态读取守护进程，精确判断是临时还是固定
+                    if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
+                        VM_SNI="${yellow}Argo 固定隧道 (ZeroTrust)${plain}"
+                    else
+                        VM_SNI="${yellow}Argo 临时隧道 (trycloudflare)${plain}"
+                    fi
                 else
-                    VM_TYPE="(${red}纯WS明文${plain})"
+                    VM_TYPE="(${red}纯WS明文${plain})" # 天生 10 字符宽
                     VM_LABEL="状态"
-                    VM_SNI="${red}无保护 (建议 CDN)${plain}"
+                    VM_SNI="${red}无保护裸奔 (建议挂载 CDN)${plain}"
                 fi
             fi
         else
