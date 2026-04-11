@@ -111,42 +111,40 @@ fi
         fi
     fi
 
-    # === 🛡️ 节点矩阵加密状态动态嗅探 ===
+   # === 🛡️ 节点矩阵加密状态动态嗅探 ===
     if [[ -f "$JSON_FILE" ]]; then
         if jq -e '.inbounds[] | select(.tag == "vless-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VL_STAT="${green}[开启]${plain}"; VL_PORT=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .listen_port' "$JSON_FILE"); VL_SNI=$(jq -r '.inbounds[] | select(.tag == "vless-in") | .tls.server_name' "$JSON_FILE")
-            VL_TYPE="${purple}Reality${plain}"
+            VL_TYPE="(${purple}Reality${plain}) " # 9字符+1空格=10宽
         fi
         
         if jq -e '.inbounds[] | select(.tag == "hy2-in")' "$JSON_FILE" >/dev/null 2>&1; then
             HY2_STAT="${green}[开启]${plain}"; HY2_PORT=$(jq -r '.inbounds[] | select(.tag == "hy2-in") | .listen_port' "$JSON_FILE"); HY2_SNI="自定义/自签"
-            HY2_TYPE="${blue}QUIC+TLS${plain}"
+            HY2_TYPE="(${blue}QUIC+TLS${plain})" # 满10宽
         fi
         
         if jq -e '.inbounds[] | select(.tag == "tuic-in")' "$JSON_FILE" >/dev/null 2>&1; then
             TUIC_STAT="${green}[开启]${plain}"; TUIC_PORT=$(jq -r '.inbounds[] | select(.tag == "tuic-in") | .listen_port' "$JSON_FILE"); TUIC_SNI="自定义/自签"
-            TUIC_TYPE="${blue}QUIC+TLS${plain}"
+            TUIC_TYPE="(${blue}QUIC+TLS${plain})" # 满10宽
         fi
         
-    if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
+        if jq -e '.inbounds[] | select(.tag == "vmess-in")' "$JSON_FILE" >/dev/null 2>&1; then
             VM_STAT="${green}[开启]${plain}"; VM_PORT=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .listen_port' "$JSON_FILE")
-            # 🚀 极致嗅探：回归极客本源，干脆利落！
             if jq -e '.inbounds[] | select(.tag == "vmess-in" and has("tls"))' "$JSON_FILE" >/dev/null 2>&1; then
-                VM_TYPE="(${green}WS+TLS${plain})  " # 补 2 个空格，占 10 字符宽
+                VM_TYPE="(${green}WS+TLS${plain})  " # 8字符+2空格=10宽
                 VM_LABEL="证书"
                 VM_SNI="${purple}自定义/自签${plain}"
             else
                 if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-                    VM_TYPE="(${yellow}Argo接管${plain})" # 中英文混排，天生 10 字符宽，无需补空格
+                    VM_TYPE="(${yellow}Argo接管${plain})" # 10宽
                     VM_LABEL="状态"
-                    # 动态读取守护进程，精确判断是临时还是固定
                     if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
                         VM_SNI="${yellow}Argo 固定隧道 (ZeroTrust)${plain}"
                     else
                         VM_SNI="${yellow}Argo 临时隧道 (trycloudflare)${plain}"
                     fi
                 else
-                    VM_TYPE="(${red}纯WS明文${plain})" # 天生 10 字符宽
+                    VM_TYPE="(${red}纯WS明文${plain})" # 10宽
                     VM_LABEL="状态"
                     VM_SNI="${red}无保护裸奔 (建议挂载 CDN)${plain}"
                 fi
@@ -157,7 +155,7 @@ fi
 
         if jq -e '.inbounds[] | select(.tag == "trojan-in")' "$JSON_FILE" >/dev/null 2>&1; then
             TR_STAT="${green}[开启]${plain}"; TR_PORT=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .listen_port' "$JSON_FILE"); TR_SNI=$(jq -r '.inbounds[] | select(.tag == "trojan-in") | .tls.server_name' "$JSON_FILE")
-            TR_TYPE="${purple}Reality${plain}"
+            TR_TYPE="(${purple}Reality${plain}) " # 9字符+1空格=10宽
         fi
     fi
 
@@ -217,11 +215,11 @@ fi
     echo -e "   动态订阅 : $SUB_STAT"
     echo -e "----------------------------------------------------------------------"
     echo -e "🛡️  ${yellow}代理引擎矩阵 (Sing-box 状态: $SB_STAT ${plain}|${yellow} 内核: ${cyan}v${SB_CORE_VER}${plain})${UPDATE_TIPS}${yellow}:${plain}"
-    echo -e "  $VL_STAT VLESS    (${VL_TYPE}) | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
-    echo -e "  $HY2_STAT Hysteria2(${HY2_TYPE}) | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
-    echo -e "  $TUIC_STAT TUIC v5  (${TUIC_TYPE}) | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
+    echo -e "  $VL_STAT VLESS    $VL_TYPE | 端口: ${cyan}$VL_PORT${plain} | 伪装: ${purple}$VL_SNI${plain}"
+    echo -e "  $HY2_STAT Hysteria2$HY2_TYPE | 端口: ${cyan}$HY2_PORT${plain} | 证书: ${purple}$HY2_SNI${plain}"
+    echo -e "  $TUIC_STAT TUIC v5  $TUIC_TYPE | 端口: ${cyan}$TUIC_PORT${plain} | 证书: ${purple}$TUIC_SNI${plain}"
     echo -e "  $VM_STAT VMess-WS $VM_TYPE | 端口: ${cyan}$VM_PORT${plain} | $VM_LABEL: $VM_SNI"
-    echo -e "  $TR_STAT Trojan   (${TR_TYPE}) | 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
+    echo -e "  $TR_STAT Trojan   $TR_TYPE | 端口: ${cyan}$TR_PORT${plain} | 伪装: ${purple}$TR_SNI${plain}"
     echo -e "----------------------------------------------------------------------"
     echo -e " 🌟 ${yellow}极客致敬：${plain}如果您觉得好用，请移步 GitHub 点个 ${cyan}Star${plain} ⭐"
     echo -e " 🔗 ${blue}https://github.com/pwenxiang51-wq/VX-Node-Engine${plain}"
