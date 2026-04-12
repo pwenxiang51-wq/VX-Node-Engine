@@ -1459,9 +1459,11 @@ function node_sentinel() {
         echo -e "      ${yellow}└─ 开启后只要有【分享的新用户 / 宽带变IP】连入，自动报警！${plain}"
         echo -e "  ${purple}4.${plain} 🧹 清理已知 IP 缓存 (让旧 IP 重新触发 TG 报警)"
         echo -e "  ${blue}5.${plain} ⚙️ 更改/删除 TG 机器人配置 (全局凭证池管理)"
+        echo -e "  ${red}6.${plain} 🚫 物理拔管：一键封杀指定 IP (网络层黑洞阻断)"
+        echo -e "  ${green}7.${plain} ♻️ 诈尸复活：一键解封被关小黑屋的 IP"
         echo -e "  ${yellow}0.${plain} 🔙 返回主菜单"
         echo -e "${cyan}----------------------------------------------------------------------${plain}"
-        read -p "👉 请选择操作 [0-5]: " sen_choice
+        read -p "👉 请选择操作 [0-7]: " sen_choice
 
         case "$sen_choice" in
             1)
@@ -1643,6 +1645,29 @@ EOF
                         systemctl daemon-reload
                         ;;
                 esac
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+            6)
+                echo -e "\n${yellow}>>> 正在启动极客物理拔管协议 (Ubuntu 内核层拦截)...${plain}"
+                read -p "👉 请输入要封杀的 IP (直接回车取消): " kill_ip
+                if [[ -n "$kill_ip" ]]; then
+                    # 兼容双栈，无视报错
+                    iptables -I INPUT -s "$kill_ip" -j DROP 2>/dev/null
+                    ip6tables -I INPUT -s "$kill_ip" -j DROP 2>/dev/null
+                    echo -e "${green}✅ 成功斩断！IP: ${kill_ip} 已被强行打入冷宫，对方客户端将永久超时！${plain}"
+                    if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+                fi
+                read -p "👉 按回车返回哨兵菜单..."
+                ;;
+            7)
+                echo -e "\n${yellow}>>> 正在启动大赦天下协议 (解封 IP)...${plain}"
+                read -p "👉 请输入要释放的 IP (直接回车取消): " free_ip
+                if [[ -n "$free_ip" ]]; then
+                    iptables -D INPUT -s "$free_ip" -j DROP 2>/dev/null
+                    ip6tables -D INPUT -s "$free_ip" -j DROP 2>/dev/null
+                    echo -e "${green}✅ 解封成功！IP: ${free_ip} 已经被释放回阳间。${plain}"
+                    if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+                fi
                 read -p "👉 按回车返回哨兵菜单..."
                 ;;
             0) break ;;
