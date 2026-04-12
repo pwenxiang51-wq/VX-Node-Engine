@@ -1748,7 +1748,7 @@ while true; do
     echo -e "  ${cyan}d.${plain} 🛡️ 挂载 WARP 优选解锁    |  ${cyan}i.${plain} 🔄 OTA 热更新引擎"
     echo -e "  ${cyan}e.${plain} ☁️ 挂载 Argo 防封复活甲  |  ${cyan}j.${plain} 📖 避坑指南与面板说明"
     echo -e "${cyan}----------------------------------------------------------------------${plain}"
-    echo -e "  ${cyan}k.${plain} 🗑️  ${red}彻底粉碎卸载${plain}         |  ${cyan}0.${plain} 🔙 退出终端"
+    echo -e "  ${cyan}k.${plain} 🗑️  ${red}彻底粉碎卸载${plain}       |  ${cyan}0.${plain} 🔙 退出终端"
     echo -e "${cyan}======================================================================${plain}"
     
     read -p "👉 执行指令 [0-6, a-k]: " choice
