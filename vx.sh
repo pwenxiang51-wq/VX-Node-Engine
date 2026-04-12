@@ -1371,28 +1371,38 @@ function uninstall_vne() {
 }
 
 # ==================================================
-# 📖 隐藏式避坑指南与面板说明
+# 📖 隐藏式避坑指南与面板说明 (V5.4 扩充版)
 # ==================================================
 function show_help() {
     clear
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "             📖 VeloX Node Engine (VX) 极客避坑指南与战术板"
+    echo -e "                 📖 VeloX Node Engine (VX) 极客战术白皮书"
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "${yellow}💡 1. 协议选择战术逻辑：${plain}"
-    echo -e "  - ${green}VLESS / Trojan${plain}: 伪装苹果域名，走 TCP 协议，适合日常主力，稳如老狗。"
-    echo -e "  - ${green}Hysteria2 / TUIC${plain}: 走 UDP 协议，无视晚高峰拥堵，专治各种线路炸裂。配合【一键换皮】食用最佳。"
-    echo -e "  - ${green}VMess-WS${plain}: 纯净明文基座，主要是为了套 CDN 或者挂载 Argo 隧道使用的底层框架。"
+    
+    echo -e "${yellow}💡 【核心战术 1】：底层协议矩阵该怎么选？${plain}"
+    echo -e "  - ${green}VLESS / Trojan${plain}: 伪装顶级大厂域名，走 TCP 协议，属于【常驻防弹装甲】，稳如老狗。"
+    echo -e "  - ${green}Hysteria2 / TUIC${plain}: 走底层的 QUIC (UDP) 协议，属于【暴力加速引擎】，专治各种跨国网络晚高峰炸裂。"
+    echo -e "  - ${green}VMess-WS${plain}: 脚本内的【黄金底座】。它默认穿戴 TLS，但随时准备为 CDN 或 Argo 献身脱甲。"
     echo -e ""
-    echo -e "${red}⚠️ 2. NAT 小鸡（端口受限）生死红线：${plain}"
-    echo -e "  如果你的 VPS 是端口受限的 NAT 机器，${red}绝对不要按【6】一键大满贯！${plain}"
-    echo -e "  请使用【1】-【5】独立部署，并手动输入可用端口！或者直接挂载【e】Argo 隧道穿透防火墙！"
+
+    echo -e "${purple}🚀 【战术核心 2】：市面最强的 Argo 复活甲 (独家降维打击)！${plain}"
+    echo -e "  与其他脚本繁琐的配置不同，VX 引擎实现了大厂网关级的【状态机自愈】逻辑："
+    echo -e "  1. 先按【4】压入 VMess-WS 协议 (系统会自动给它穿上 TLS 满血装甲)。"
+    echo -e "  2. IP 被墙了？直接按【e】开启 Argo！引擎会自动把 VMess 的 TLS 物理剥离，瞬间接管 CF 地下隧道！"
+    echo -e "  3. Argo 不想用了？再按【e】拆除！VMess 会瞬间被脚本【重新焊回 TLS 装甲】，原地满血复活！"
+    echo -e "  👉 ${cyan}全程无需手搓任何配置，物理卸甲 -> 隧道穿透 -> 拆除重铸，一气呵成！${plain}"
     echo -e ""
-    echo -e "${blue}🛡️ 3. 战术外挂功能详解：${plain}"
-    echo -e "  - ${cyan}[b] 一键换皮${plain}: 当 UDP 节点变慢或被墙阻断时，瞬间重置底层防探针乱码 SNI，金蝉脱壳！"
-    echo -e "  - ${cyan}[c] BBR 加速${plain}: 强行修改内核拥塞控制算法，压榨 VPS 最后一滴带宽极限。"
-    echo -e "  - ${cyan}[d] WARP 解锁${plain}: 给你的 VPS 套上 Cloudflare 的原生 IP 外衣，秒解 ChatGPT 和 Netflix。"
-    echo -e "  - ${cyan}[e] Argo 复活甲${plain}: 即使 IP 惨遭 GFW 封杀物理断网，套上它立刻原地满血复活！"
-    echo -e "  - ${cyan}[h] 节点哨兵${plain}: 挂载 TG 机器人，全天候监控你的 VPS 有没有被墙或者被扫端口。"
+
+    echo -e "${blue}🛡️ 【战术外挂 3】：高阶极客玩法揭秘${plain}"
+    echo -e "  - ${cyan}[6] 大满贯装载${plain}: 懒人终极杀器。10秒钟自动智能探测碰撞端口，5大神级协议全量部署，防火墙一次性打穿。"
+    echo -e "  - ${cyan}[b] 一键换皮${plain}: UDP 协议 (Hy2/TUIC) 跑久了被墙盯上变慢？按 b 键一秒重置底层乱码 SNI，金蝉脱壳！"
+    echo -e "  - ${cyan}[d] WARP 解锁${plain}: 挂载 SOCKS5 本地探针，精准分流 OpenAI 和 Netflix，且绝对不会让 VPS 物理失联。"
+    echo -e "  - ${cyan}[h] 节点哨兵${plain}: 绑定 TG 机器人后，只要有新 IP 连入节点，手机立刻弹预警！谁也别想白嫖流量！"
+    echo -e ""
+
+    echo -e "${red}⚠️ 【生死红线】：NAT 小鸡 (端口受限) 警告${plain}"
+    echo -e "  如果你的 VPS 是那种没有独立公网 IP、只能用几个转发端口的 NAT 机器，${red}绝对不要按【6】大满贯！${plain}"
+    echo -e "  乖乖用【1-5】单独部署，并手动输入你的可用端口。或者直接用【e】挂载 Argo 强行无视 NAT 穿透！"
     echo -e "${cyan}======================================================================${plain}"
     read -p "👉 阅毕，请按回车键返回指挥中心..."
 }
