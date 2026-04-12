@@ -1651,11 +1651,16 @@ EOF
                 echo -e "\n${yellow}>>> 正在启动极客物理拔管协议 (Ubuntu 内核层拦截)...${plain}"
                 read -p "👉 请输入要封杀的 IP (直接回车取消): " kill_ip
                 if [[ -n "$kill_ip" ]]; then
-                    # 兼容双栈，无视报错
-                    iptables -I INPUT -s "$kill_ip" -j DROP 2>/dev/null
-                    ip6tables -I INPUT -s "$kill_ip" -j DROP 2>/dev/null
-                    echo -e "${green}✅ 成功斩断！IP: ${kill_ip} 已被强行打入冷宫，对方客户端将永久超时！${plain}"
-                    if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+                    # 🛡️ 顶级安全规范：正则校验输入是否为合法 IPv4/IPv6 格式
+                    if [[ "$kill_ip" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || [[ "$kill_ip" =~ ^[0-9a-fA-F:]+$ ]]; then
+                        iptables -I INPUT -s "$kill_ip" -j DROP 2>/dev/null
+                        ip6tables -I INPUT -s "$kill_ip" -j DROP 2>/dev/null
+                        echo -e "${green}✅ 成功斩断！IP: ${kill_ip} 已被强行打入冷宫，对方客户端将永久超时！${plain}"
+                        if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+                    else
+                        echo -e "${red}❌ 致命拦截：输入格式非法！VX 引擎拒绝执行污染指令！${plain}"
+                        sleep 2
+                    fi
                 fi
                 read -p "👉 按回车返回哨兵菜单..."
                 ;;
@@ -1663,10 +1668,16 @@ EOF
                 echo -e "\n${yellow}>>> 正在启动大赦天下协议 (解封 IP)...${plain}"
                 read -p "👉 请输入要释放的 IP (直接回车取消): " free_ip
                 if [[ -n "$free_ip" ]]; then
-                    iptables -D INPUT -s "$free_ip" -j DROP 2>/dev/null
-                    ip6tables -D INPUT -s "$free_ip" -j DROP 2>/dev/null
-                    echo -e "${green}✅ 解封成功！IP: ${free_ip} 已经被释放回阳间。${plain}"
-                    if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+                    # 🛡️ 顶级安全规范：同样进行正则强校验
+                    if [[ "$free_ip" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || [[ "$free_ip" =~ ^[0-9a-fA-F:]+$ ]]; then
+                        iptables -D INPUT -s "$free_ip" -j DROP 2>/dev/null
+                        ip6tables -D INPUT -s "$free_ip" -j DROP 2>/dev/null
+                        echo -e "${green}✅ 解封成功！IP: ${free_ip} 已经被释放回阳间。${plain}"
+                        if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+                    else
+                        echo -e "${red}❌ 致命拦截：输入格式非法！VX 引擎拒绝执行污染指令！${plain}"
+                        sleep 2
+                    fi
                 fi
                 read -p "👉 按回车返回哨兵菜单..."
                 ;;
