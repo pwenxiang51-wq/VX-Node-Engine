@@ -592,10 +592,35 @@ EOF
 }
 
 # ==================================================
-# 协议库
+# 协议库 (V6.6 终极防呆自愈版)
 # ==================================================
+
+# --- 🚀 核心：智能单节点自愈与防呆雷达 ---
+function prepare_clean_env() {
+    local NODE_NAME=$1
+    if [[ -f "$JSON_FILE" ]] && jq -e '.inbounds | length > 0' "$JSON_FILE" >/dev/null 2>&1; then
+        echo -e "\n${yellow}⚠️ 雷达探测：当前系统已存在其他节点或外挂！${plain}"
+        echo -e "大佬，您想要如何装载 ${cyan}${NODE_NAME}${plain}？"
+        echo -e "  ${green}1.${plain} 增量叠加 (仅更新此节点，不影响其他协议与 WARP/Argo)"
+        echo -e "  ${red}2.${plain} 纯净单节点 (💥 物理核爆其他所有节点与外挂，【仅】保留当前协议) *推荐*"
+        read -p "👉 请选择 [1/2] (默认 1): " INSTALL_MODE
+        if [[ "$INSTALL_MODE" == "2" ]]; then
+            echo -e "${yellow}>>> 正在启动核爆清理程序，驱逐所有历史幽灵...${plain}"
+            > "$LINK_FILE"
+            if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+                systemctl stop vx-argo >/dev/null 2>&1; systemctl disable vx-argo >/dev/null 2>&1; rm -f /etc/systemd/system/vx-argo.service; systemctl daemon-reload
+            fi
+            if command -v warp-cli &> /dev/null; then warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1; fi
+            echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
+            echo -e "${green}✅ 环境已绝对纯净！开始锻造单节点...${plain}"
+        fi
+    fi
+    init_json
+}
+
 function install_vless_reality() {
-    check_sys && install_core && init_json && get_smart_ip
+    check_sys && install_core && get_smart_ip
+    prepare_clean_env "VLESS-Reality"
     echo -e "\n${yellow}>>> 锻造 VLESS-Reality ：${plain}"
     local LISTEN_PORT=$(get_smart_port "监听端口")
     read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
@@ -614,29 +639,27 @@ EOF
 
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
-    local SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-VeloX"
-    sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null || true
+    local SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-Reality-VeloX"
+    sed -i '/#VLESS-Reality-VeloX/d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
 }
 
 function install_hysteria2() {
-    check_sys && install_core && init_json && get_smart_ip
+    check_sys && install_core && get_smart_ip
+    prepare_clean_env "Hysteria2"
     echo -e "\n${yellow}>>> 锻造 Hysteria2 ：${plain}"
     local LISTEN_PORT=$(get_smart_port "监听端口")
     read -p "👉 密码 (直接回车随机): " HYS_PASS; HYS_PASS=${HYS_PASS:-$(openssl rand -hex 8)}
     
-    # === 👇 极客级上下文感知雷达 👇 ===
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
     local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
-        # 探测是否存在真实证书
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
             SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
             echo -e "${green}✅ 雷达锁定！侦测到真实防弹装甲，已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
         else
-            # 保留你原本极其优秀的量子随机防御机制！
             SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
             echo -e "${yellow}⚠️ 未挂载真实证书，UDP层已自动切换至防探针乱码装甲: ${SNI_DOMAIN}${plain}"
         fi
@@ -644,7 +667,6 @@ function install_hysteria2() {
         SNI_DOMAIN="$INPUT_DOMAIN"
         echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
     fi
-    # === 👆 雷达探测结束 👆 ===
     
     generate_cert_dynamic "$SNI_DOMAIN"
     cat << EOF > /tmp/vx_tmp.json
@@ -656,29 +678,27 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
     local SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&insecure=1#Hys2-VeloX"
-    sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null || true
+    sed -i '/#Hys2-VeloX/d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ Hysteria2 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
 }
 
 function install_tuic_v5() {
-    check_sys && install_core && init_json && get_smart_ip
+    check_sys && install_core && get_smart_ip
+    prepare_clean_env "TUIC v5"
     echo -e "\n${yellow}>>> 锻造 TUIC v5 ：${plain}"
     local LISTEN_PORT=$(get_smart_port "监听端口")
     read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
     read -p "👉 密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$(openssl rand -hex 8)}
     
-    # === 👇 极客级上下文感知雷达 👇 ===
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
     local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
-        # 探测是否存在真实证书
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
             SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
             echo -e "${green}✅ 雷达锁定！侦测到真实防弹装甲，已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
         else
-            # 保留你原本极其优秀的量子随机防御机制！
             SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
             echo -e "${yellow}⚠️ 未挂载真实证书，UDP层已自动切换至防探针乱码装甲: ${SNI_DOMAIN}${plain}"
         fi
@@ -686,7 +706,6 @@ function install_tuic_v5() {
         SNI_DOMAIN="$INPUT_DOMAIN"
         echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
     fi
-    # === 👆 雷达探测结束 👆 ===
     
     generate_cert_dynamic "$SNI_DOMAIN"
     
@@ -699,27 +718,19 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
     local SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX"
-    sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null || true
+    sed -i '/#TUIC-VeloX/d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ TUIC v5 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
 }
 
 function install_vmess_ws() {
-    check_sys && install_core && init_json && get_smart_ip
+    check_sys && install_core && get_smart_ip
+    prepare_clean_env "VMess-WS+TLS"
     echo -e "\n${yellow}>>> 锻造 VMess-WS+TLS (满血防弹装甲) ：${plain}"
-    # === 🚀 极客防呆：重铸 VMess 会改变端口和 TLS，必须强拆 Argo 避免指针悬空 ===
-    if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-        echo -e "${yellow}⚠️ 警告：检测到您正在重铸 VMess 底座，已自动物理拆除失效的 Argo 隧道！请稍后重新挂载。${plain}"
-        systemctl stop vx-argo >/dev/null 2>&1
-        systemctl disable vx-argo >/dev/null 2>&1
-        rm -f /etc/systemd/system/vx-argo.service
-        systemctl daemon-reload
-    fi
     local LISTEN_PORT=$(get_smart_port "监听端口")
     read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
     
-    # 自动探测或注入域名装甲
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
     local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
@@ -738,7 +749,6 @@ function install_vmess_ws() {
     generate_cert_dynamic "$SNI_DOMAIN"
     local WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 
-    # 原子压入带 TLS 的底层配置
     cat << EOF > /tmp/vx_tmp.json
 {"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"},"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","certificate_path":"$CERT_DIR/cert.crt","key_path":"$CERT_DIR/private.key"}}
 EOF
@@ -748,10 +758,22 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
     
-    # 构建满血带 TLS 的分享链接
     local VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
     local SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
-    sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null || true
+    
+    # 暴力撬开密码箱：精准狙击旧的普通 VMess (绝不误伤 Argo 链接)
+    if [[ -f "$LINK_FILE" ]]; then
+        mv "$LINK_FILE" "${LINK_FILE}.tmp"
+        cat "${LINK_FILE}.tmp" | while read line; do
+            if [[ "$line" == vmess://* ]]; then
+                if echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null | grep -q "VMess-WS-TLS-VeloX"; then
+                    continue # 发现旧节点，直接丢弃
+                fi
+            fi
+            echo "$line" >> "$LINK_FILE"
+        done
+        rm -f "${LINK_FILE}.tmp"
+    fi
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ VMess-WS+TLS 装载完成！已默认穿戴防弹装甲。${plain}"
@@ -759,7 +781,8 @@ EOF
 }
 
 function install_trojan_reality() {
-    check_sys && install_core && init_json && get_smart_ip
+    check_sys && install_core && get_smart_ip
+    prepare_clean_env "Trojan-Reality"
     echo -e "\n${yellow}>>> 锻造 Trojan-Reality (NPC进阶神级) ：${plain}"
     local LISTEN_PORT=$(get_smart_port "监听端口")
     read -p "👉 密码 (直接回车随机): " TROJAN_PASS; TROJAN_PASS=${TROJAN_PASS:-$(openssl rand -hex 8)}
@@ -780,7 +803,7 @@ EOF
     systemctl restart vx-core.service
 
     local SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
-    sed -i '/^trojan:\/\//d' "$LINK_FILE" 2>/dev/null || true
+    sed -i '/#Trojan-Reality-VeloX/d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
