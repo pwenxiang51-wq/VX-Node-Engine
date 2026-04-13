@@ -1839,7 +1839,7 @@ EOF
 }
 
 # === 🚀 极客快捷指令拦截器 (CLI 模式) ===
-if [[ "$1" == "log" || "$1" == "radar" || "$1" == "sentinel" ]]; then
+if [[ "${1:-}" == "log" || "${1:-}" == "radar" || "${1:-}" == "sentinel" ]]; then
     trap 'echo -e "\n返回命令行..."' INT
     TZ="Asia/Shanghai" journalctl -u vx-core.service -f | grep --line-buffered "inbound connection from"
     trap - INT
