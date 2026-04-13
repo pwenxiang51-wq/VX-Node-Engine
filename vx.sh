@@ -582,14 +582,14 @@ EOF
 function install_vless_reality() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 VLESS-Reality ：${plain}"
-    LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+    local LISTEN_PORT=$(get_smart_port "监听端口")
+    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
     read -p "👉 伪装域名 (直接回车默认 apple.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
 
-    KEYS=$($BIN_FILE generate reality-keypair)
-    PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
-    PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
-    SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    local KEYS=$($BIN_FILE generate reality-keypair)
+    local PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
+    local PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
+    local SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
 
     cat << EOF > /tmp/vx_tmp.json
 {"type":"vless","tag":"vless-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","reality":{"enabled":true,"handshake":{"server":"$SNI_DOMAIN","server_port":443},"private_key":"$PRV_KEY","short_id":["$SHORT_ID"]}}}
@@ -599,8 +599,8 @@ EOF
 
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
-    SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-VeloX"
-    sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null
+    local SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-VeloX"
+    sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
@@ -609,11 +609,12 @@ EOF
 function install_hysteria2() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 Hysteria2 ：${plain}"
-    LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉 密码 (直接回车随机): " HYS_PASS; HYS_PASS=${HYS_PASS:-$TEMP_PASS}
+    local LISTEN_PORT=$(get_smart_port "监听端口")
+    read -p "👉 密码 (直接回车随机): " HYS_PASS; HYS_PASS=${HYS_PASS:-$(openssl rand -hex 8)}
     
     # === 👇 极客级上下文感知雷达 👇 ===
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
         # 探测是否存在真实证书
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
@@ -639,8 +640,8 @@ EOF
 
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
-    SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&insecure=1#Hys2-VeloX"
-    sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null
+    local SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&insecure=1#Hys2-VeloX"
+    sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ Hysteria2 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
@@ -649,12 +650,13 @@ EOF
 function install_tuic_v5() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 TUIC v5 ：${plain}"
-    LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+    local LISTEN_PORT=$(get_smart_port "监听端口")
+    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
     read -p "👉 密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$(openssl rand -hex 8)}
     
     # === 👇 极客级上下文感知雷达 👇 ===
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
         # 探测是否存在真实证书
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
@@ -681,8 +683,8 @@ EOF
 
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
-    SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX"
-    sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null
+    local SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX"
+    sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ TUIC v5 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
@@ -691,11 +693,12 @@ EOF
 function install_vmess_ws() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 VMess-WS+TLS (满血防弹装甲) ：${plain}"
-    LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+    local LISTEN_PORT=$(get_smart_port "监听端口")
+    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
     
     # 自动探测或注入域名装甲
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
+    local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
             SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
@@ -710,7 +713,7 @@ function install_vmess_ws() {
     fi
     
     generate_cert_dynamic "$SNI_DOMAIN"
-    WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+    local WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 
     # 原子压入带 TLS 的底层配置
     cat << EOF > /tmp/vx_tmp.json
@@ -723,9 +726,9 @@ EOF
     systemctl restart vx-core.service
     
     # 构建满血带 TLS 的分享链接
-    VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
-    SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
-    sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
+    local VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+    local SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
+    sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ VMess-WS+TLS 装载完成！已默认穿戴防弹装甲。${plain}"
@@ -735,14 +738,14 @@ EOF
 function install_trojan_reality() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 Trojan-Reality (NPC进阶神级) ：${plain}"
-    LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉 密码 (直接回车随机): " TROJAN_PASS; TROJAN_PASS=${TROJAN_PASS:-$TEMP_PASS}
+    local LISTEN_PORT=$(get_smart_port "监听端口")
+    read -p "👉 密码 (直接回车随机): " TROJAN_PASS; TROJAN_PASS=${TROJAN_PASS:-$(openssl rand -hex 8)}
     read -p "👉 伪装域名 (直接回车默认 apple.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
 
-    KEYS=$($BIN_FILE generate reality-keypair)
-    PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
-    PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
-    SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    local KEYS=$($BIN_FILE generate reality-keypair)
+    local PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
+    local PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
+    local SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
 
     cat << EOF > /tmp/vx_tmp.json
 {"type":"trojan","tag":"trojan-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"password":"$TROJAN_PASS"}],"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","reality":{"enabled":true,"handshake":{"server":"$SNI_DOMAIN","server_port":443},"private_key":"$PRV_KEY","short_id":["$SHORT_ID"]}}}
@@ -753,8 +756,8 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
 
-    SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
-    sed -i '/^trojan:\/\//d' "$LINK_FILE" 2>/dev/null
+    local SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
+    sed -i '/^trojan:\/\//d' "$LINK_FILE" 2>/dev/null || true
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
