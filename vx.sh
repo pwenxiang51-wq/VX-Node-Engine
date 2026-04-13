@@ -91,14 +91,14 @@ function get_smart_port() {
 # ==================================================
 function show_dashboard() {
     clear
-    OS_INFO=$(cat /etc/os-release | grep "PRETTY_NAME" | cut -d '"' -f 2)
+    OS_INFO=$(cat /etc/os-release | grep "PRETTY_NAME" | cut -d '"' -f 2 || echo "未知系统")
     KERNEL_VER=$(uname -r); ARCH=$(uname -m)
     BBR_STAT=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}' || echo "未开启")
     IPV4=$(curl -s4m3 icanhazip.com || echo "无 IPv4")
     IPV6=$(curl -s6m3 icanhazip.com || echo "无 IPv6")
-    IP_INFO=$(curl -s4m3 http://ip-api.com/json/)
-    LOC=$(echo "$IP_INFO" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
-    ISP=$(echo "$IP_INFO" | grep -o '"isp":"[^"]*' | cut -d'"' -f4)
+    IP_INFO=$(curl -s4m3 http://ip-api.com/json/ || echo "{}")
+    LOC=$(echo "$IP_INFO" | grep -o '"country":"[^"]*' | cut -d'"' -f4 || echo "未知")
+    ISP=$(echo "$IP_INFO" | grep -o '"isp":"[^"]*' | cut -d'"' -f4 || echo "未知")
     SB_STAT=$(systemctl is-active --quiet vx-core.service 2>/dev/null && echo -e "${green}运行中 ✅${plain}" || echo -e "${red}未部署 ❌${plain}")
 
     local VL_STAT="${red}[未启]${plain}"; local VL_PORT="-----"; local VL_SNI="-------"; local VL_TYPE=""
@@ -216,7 +216,7 @@ fi
     fi
     # === 👇 极客新增：Sing-box 内核极速防卡死探针 👇 ===
     if [[ -x "/usr/local/bin/sing-box" ]]; then
-        SB_CORE_VER=$(/usr/local/bin/sing-box version 2>/dev/null | head -n 1 | awk '{print $3}')
+       SB_CORE_VER=$(/usr/local/bin/sing-box version 2>/dev/null | head -n 1 | awk '{print $3}' || echo "未知")
         [[ -z "$SB_CORE_VER" ]] && SB_CORE_VER="未知"
     else
         SB_CORE_VER="未安装"
