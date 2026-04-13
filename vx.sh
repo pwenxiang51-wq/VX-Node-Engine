@@ -1,7 +1,7 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V6.2 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V6.3 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
 # =======================================================
 
 
@@ -32,8 +32,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="6.2"
-
+VX_VERSION="6.3"
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
 
@@ -48,20 +47,23 @@ if [[ ! -f "/usr/local/bin/vx" ]]; then
     fi
 fi
 
-# === 🔪 V6.2 新增核心：强类型智能端口探针 ===
+# === 🔪 V6.3 新增核心：强类型智能端口探针 ===
 function get_smart_port() {
     local PROMPT_TEXT=$1
     local CHOSEN_PORT=""
     local SILENT_MODE=${2:-false}
+    
     if [[ "$SILENT_MODE" == "true" ]]; then
         while true; do
             CHOSEN_PORT=$(shuf -i 10000-60000 -n 1)
             if ! ss -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT " && ! netstat -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT "; then
+                # 🤫 V6.3 极致静默：什么都不打印，只通过标准输出返回端口号供外部捕获
                 echo "$CHOSEN_PORT"
                 return
             fi
         done
     fi
+    
     while true; do
         read -p "👉 $PROMPT_TEXT (10000-65535, 直接回车智能分配纯净端口): " INPUT_PORT
         if [[ -z "$INPUT_PORT" ]]; then
@@ -546,7 +548,7 @@ function apply_acme_cert() {
     echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt    
     echo -e "\n${green}✅ ACME 真实证书部署完成！系统将自动为您管理后续的十年续签。${plain}"
     echo -e "👉 ${yellow}提示: 安装 Hys2/TUIC/Trojan 时填入此域名，将自动接管真实证书！${plain}"
-    # 👇 V6.2 证书防暴毙守护进程
+    # 👇 V6.3 证书防暴毙守护进程
     echo -e "${yellow}>>> 正在部署 [量子自签降级守护进程]...${plain}"
     cat << 'EOF' > /usr/local/bin/vx-cert-guard.sh
 #!/bin/bash
@@ -572,7 +574,7 @@ EOF
     if crontab -l 2>/dev/null | grep -q "vx-cert-guard.sh"; then crontab -l 2>/dev/null | grep -v "vx-cert-guard.sh" | crontab -; fi
     (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/vx-cert-guard.sh") | crontab -
     echo -e "${green}✅ 证书降级守护已潜伏！${plain}"
-    # 👆 V6.2 守护结束
+    # 👆 V6.3 守护结束
     read -p "👉 按回车返回大屏..."
 }
 
@@ -805,12 +807,12 @@ function install_all_nodes() {
     > "$LINK_FILE"
     echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
 
-    # 4. 端口隔离生成池：智能侦测碰撞，确保大满贯端口绝对纯净！
-    local P1=$(get_smart_port "" true)
-    local P2=$(get_smart_port "" true)
-    local P3=$(get_smart_port "" true)
-    local P4=$(get_smart_port "" true)
-    local P5=$(get_smart_port "" true)
+   # 4. 端口隔离生成池：智能侦测碰撞，确保大满贯端口绝对纯净！
+    local P1=$(get_smart_port "P1" true 2>/dev/null)
+    local P2=$(get_smart_port "P2" true 2>/dev/null)
+    local P3=$(get_smart_port "P3" true 2>/dev/null)
+    local P4=$(get_smart_port "P4" true 2>/dev/null)
+    local P5=$(get_smart_port "P5" true 2>/dev/null)
 
     # 5. 极速压入节点
     echo -e "\n${yellow}>>> [1/5] 正在极速压入 VLESS-Reality...${plain}"
@@ -1214,7 +1216,7 @@ EOF
 
     sed -i '/VMess-Argo-复活甲/d' "$LINK_FILE" 2>/dev/null
     echo "$ARGO_LINK" >> "$LINK_FILE"
-    # 👇 V6.2 Argo 临时隧道防假死起搏器
+   # 👇 V6.3 Argo 临时隧道心跳守护 (带防空洞超时保护)
     if [[ "$ARGO_MODE" != "2" ]]; then
         echo -e "${yellow}>>> 正在部署 [Argo 心跳保活起搏器]...${plain}"
         cat << 'EOF' > /usr/local/bin/vx-argo-watchdog.sh
@@ -1226,13 +1228,17 @@ DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN" || echo "000")
 if [[ "$HTTP_CODE" == "000" || "$HTTP_CODE" == "502" || "$HTTP_CODE" == "530" || "$HTTP_CODE" == "503" || "$HTTP_CODE" == "504" ]]; then
     systemctl restart vx-argo
-    sleep 8
-    NEW_DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
+    sleep 10
+    NEW_DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///' || true)
+    
+    if [[ -z "$NEW_DOMAIN" ]]; then
+        NEW_DOMAIN="[边缘节点分配超时，请手动检查]"
+    fi
     
     if [[ -f "/etc/velox_tg.conf" ]]; then
         source "/etc/velox_tg.conf"
         MSG="🔄 <b>[VX Argo 隧道重构通知]</b>
-节点 <code>$(hostname)</code> 临时隧道断流！已物理重启获取新通道。
+大佬，节点 <code>$(hostname)</code> 临时隧道断流！已物理重启获取新通道。
 🔗 新防弹域名：<code>$NEW_DOMAIN</code>"
         curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d chat_id="${GLOBAL_TG_CHATID}" -d text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
     fi
@@ -1243,7 +1249,7 @@ EOF
         (crontab -l 2>/dev/null; echo "*/5 * * * * /usr/local/bin/vx-argo-watchdog.sh") | crontab -
         echo -e "${green}✅ Argo 心跳守护已部署！${plain}"
     fi
-    # 👆 V6.2 守护结束
+    # 👆 V6.3 守护结束
     update_sub
     echo -e "\n${green}🎉 Argo 隧道挂载成功！哪怕服务器 IP 被墙，此节点依然坚挺！${plain}"
     if [[ "$ARGO_MODE" == "2" ]]; then
@@ -1436,7 +1442,7 @@ function uninstall_vne() {
     # 【致命错误修正】：精准抹除 /etc/velox_vne，决不能硬编码写 /etc/vx
     rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
     rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
-    # 彻底抹杀 V6.2 守护进程
+    # 彻底抹杀 V6.3 守护进程
     rm -f /usr/local/bin/vx-cert-guard.sh /usr/local/bin/vx-argo-watchdog.sh 2>/dev/null
     rm -rf /usr/local/vx /tmp/sing-box* 2>/dev/null
     rm -f /usr/local/bin/vx-tg-sentinel.sh 2>/dev/null
