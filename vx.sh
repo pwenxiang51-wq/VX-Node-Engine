@@ -30,7 +30,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="6.3"
+VX_VERSION="6.4"
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
 
