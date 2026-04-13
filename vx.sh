@@ -1,7 +1,7 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V6.4 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V6.5 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
 # =======================================================
 
 
@@ -30,7 +30,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="6.4"
+VX_VERSION="6.5"
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
 
@@ -45,7 +45,7 @@ if [[ ! -f "/usr/local/bin/vx" ]]; then
     fi
 fi
 
-# === 🔪 V6.4 核心：强类型智能端口探针 (绝对静默版) ===
+# === 🔪 V6.5 核心：强类型智能端口探针 (绝对静默版) ===
 function get_smart_port() {
     local PROMPT_TEXT="${1:-}" # 防 -u 报错
     local SILENT_MODE="${2:-false}"
@@ -560,7 +560,7 @@ function apply_acme_cert() {
     echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt    
     echo -e "\n${green}✅ ACME 真实证书部署完成！系统将自动为您管理后续的十年续签。${plain}"
     echo -e "👉 ${yellow}提示: 安装 Hys2/TUIC/Trojan 时填入此域名，将自动接管真实证书！${plain}"
-    # 👇 V6.4 证书防暴毙守护进程
+    # 👇 V6.5 证书防暴毙守护进程
     echo -e "${yellow}>>> 正在部署 [量子自签降级守护进程]...${plain}"
     cat << 'EOF' > /usr/local/bin/vx-cert-guard.sh
 #!/bin/bash
@@ -586,7 +586,7 @@ EOF
     if crontab -l 2>/dev/null | grep -q "vx-cert-guard.sh"; then crontab -l 2>/dev/null | grep -v "vx-cert-guard.sh" | crontab -; fi
     (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/vx-cert-guard.sh") | crontab -
     echo -e "${green}✅ 证书降级守护已潜伏！${plain}"
-    # 👆 V6.4 守护结束
+    # 👆 V6.5 守护结束
     read -p "👉 按回车返回大屏..."
 }
 
@@ -1238,7 +1238,7 @@ EOF
 
     sed -i '/VMess-Argo-复活甲/d' "$LINK_FILE" 2>/dev/null
     echo "$ARGO_LINK" >> "$LINK_FILE"
-   # 👇 V6.4 Argo 临时隧道心跳守护 (带防空洞超时保护)
+   # 👇 V6.5 Argo 临时隧道心跳守护 (带防空洞超时保护)
     if [[ "$ARGO_MODE" != "2" ]]; then
         echo -e "${yellow}>>> 正在部署 [Argo 心跳保活起搏器]...${plain}"
         cat << 'EOF' > /usr/local/bin/vx-argo-watchdog.sh
@@ -1271,7 +1271,7 @@ EOF
         (crontab -l 2>/dev/null; echo "*/5 * * * * /usr/local/bin/vx-argo-watchdog.sh") | crontab -
         echo -e "${green}✅ Argo 心跳守护已部署！${plain}"
     fi
-    # 👆 V6.4 守护结束
+    # 👆 V6.5 守护结束
     update_sub
     echo -e "\n${green}🎉 Argo 隧道挂载成功！哪怕服务器 IP 被墙，此节点依然坚挺！${plain}"
     if [[ "$ARGO_MODE" == "2" ]]; then
@@ -1504,7 +1504,7 @@ function uninstall_vne() {
     fi
     rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
     rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
-    # 彻底抹杀 V6.4 守护进程
+    # 彻底抹杀 V6.5 守护进程
     rm -f /usr/local/bin/vx-cert-guard.sh /usr/local/bin/vx-argo-watchdog.sh 2>/dev/null
     rm -rf /usr/local/vx /tmp/sing-box* 2>/dev/null
     rm -f /usr/local/bin/vx-tg-sentinel.sh 2>/dev/null
