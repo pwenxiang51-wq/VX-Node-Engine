@@ -836,11 +836,15 @@ function install_all_nodes() {
     echo "tuic://${U3}:${PW3}@${SERVER_IP}:${P3}/?sni=${UDP_SNI}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX" >> "$LINK_FILE"
     open_port $P3
 
-    echo -e "${yellow}>>> [4/5] 正在极速压入 VMess-WS (基础明文内核，为 Argo/CDN 预留)...${plain}"
+   echo -e "${yellow}>>> [4/5] 正在极速压入 VMess-WS+TLS...${plain}"
     local U4=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)4")
     local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
-    jq --argjson p "$P4" --arg u "$U4" --arg w "$W4" '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w}}]' "$JSON_FILE" | atomic_jq
-    local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-VeloX" --arg add "$SERVER_IP" --arg port "$P4" --arg id "$U4" --arg net "ws" --arg type "none" --arg host "" --arg path "$W4" --arg tls "" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:$type, host:$host, path:$path, tls:$tls}')
+    
+    # 原子级注入：使用大满贯统一的 UDP_SNI 作为域名，强行挂载 TLS
+    jq --argjson p "$P4" --arg u "$U4" --arg w "$W4" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg sni "$UDP_SNI" '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w},"tls":{"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
+    
+    # 重铸带 TLS 的分享链接
+    local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$P4" --arg id "$U4" --arg net "ws" --arg host "$UDP_SNI" --arg path "$W4" --arg tls "tls" --arg sni "$UDP_SNI" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
     echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
     open_port $P4
 
