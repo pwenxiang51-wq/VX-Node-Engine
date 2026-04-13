@@ -1439,6 +1439,9 @@ function uninstall_vne() {
     rm -f "$SERVICE_FILE" /etc/systemd/system/cloudflared.service /etc/systemd/system/vx-tg-sentinel.service /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub.service /etc/systemd/system/vx-sub-https.service 2>/dev/null
     systemctl daemon-reload
 
+    # 强行重置 Systemd 的失败状态缓存，把幽灵进程彻底打飞
+    systemctl reset-failed 2>/dev/null
+
    echo -e "${yellow}>>> 💥 [2/5] 正在粉碎战术外挂 (Argo / WARP / Acme)...${plain}"
     # 爆破 Argo 隧道与 Cloudflared 二进制
     rm -rf /etc/cloudflared /root/.cloudflared 2>/dev/null
@@ -1448,7 +1451,15 @@ function uninstall_vne() {
     if command -v warp-cli &> /dev/null; then warp-cli disconnect 2>/dev/null; apt-get purge -y cloudflare-warp 2>/dev/null; fi
     if command -v wg-quick &> /dev/null; then wg-quick down wgcf 2>/dev/null; rm -rf /etc/wireguard/wgcf* 2>/dev/null; fi
     rm -f /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null
-    
+
+    # 极客补枪：如果 WARP 客户端抽风崩溃，强行拆除其在内核态绑定的虚拟网卡
+    if ip link show CloudflareWARP &>/dev/null; then
+        ip link delete CloudflareWARP 2>/dev/null
+    fi
+    # 拆除遗留的 wgcf 网卡
+    if ip link show wgcf &>/dev/null; then
+        ip link delete wgcf 2>/dev/null
+    fi
     # 爆破 Acme.sh
     if [[ -f ~/.acme.sh/acme.sh ]]; then ~/.acme.sh/acme.sh --uninstall 2>/dev/null; fi
     rm -rf ~/.acme.sh 2>/dev/null
@@ -1462,6 +1473,35 @@ function uninstall_vne() {
 
    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
     # 【致命错误修正】：精准抹除 /etc/velox_vne，决不能硬编码写 /etc/vx
+    echo -e "${yellow}>>> 💥 [附加打击] 正在提取历史端口，执行防火墙反向修补...${plain}"
+    # 极客嗅探：在删除配置文件前，读取所有用过的端口并将其物理封死
+    if [[ -f "$JSON_FILE" ]]; then
+        local PORTS=$(jq -r '.inbounds[].listen_port' "$JSON_FILE" 2>/dev/null | grep -v null)
+        for PORT in $PORTS; do
+            # 清除 UFW 规则
+            if command -v ufw &> /dev/null; then
+                ufw delete allow $PORT/tcp >/dev/null 2>&1
+                ufw delete allow $PORT/udp >/dev/null 2>&1
+            fi
+            # 清除 Firewalld 规则
+            if command -v firewall-cmd &> /dev/null; then
+                firewall-cmd --zone=public --remove-port=$PORT/tcp --permanent >/dev/null 2>&1
+                firewall-cmd --zone=public --remove-port=$PORT/udp --permanent >/dev/null 2>&1
+            fi
+            # 清除 Iptables 规则
+            if command -v iptables &> /dev/null; then
+                iptables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+                iptables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+                if command -v ip6tables &> /dev/null; then
+                    ip6tables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+                    ip6tables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+                fi
+            fi
+        done
+        # 保存重载
+        if command -v firewall-cmd &> /dev/null; then firewall-cmd --reload >/dev/null 2>&1; fi
+        if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+    fi
     rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
     rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
     # 彻底抹杀 V6.4 守护进程
