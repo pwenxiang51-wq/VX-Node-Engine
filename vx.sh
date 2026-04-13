@@ -844,7 +844,7 @@ function install_all_nodes() {
     echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
     open_port $P4
 
-    echo -e "${yellow}>>> [5/5] 正在极速压入 Trojan-Reality...${plain}"
+    echo -e "${yellow}>>> [5/5] 正在极速压入 Trojan-Reality...${plain}" 
     local PW5=$(openssl rand -hex 8)
     local K5=$($BIN_FILE generate reality-keypair)
     local PR5=$(echo "$K5" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
