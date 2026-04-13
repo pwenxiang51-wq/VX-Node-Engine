@@ -203,7 +203,7 @@ fi
     fi
 
     # 极速无感检测版本更新 (1.5秒超时)
-  REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
+   local REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" 2>/dev/null | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
     UPDATE_MSG=""
     if [[ -n "$REMOTE_VER" && "$REMOTE_VER" != "$VX_VERSION" ]]; then
         UPDATE_MSG="${yellow}🔔 发现新版 v${REMOTE_VER} (请按 i 升级)${plain}"
@@ -219,7 +219,7 @@ fi
     fi
 
     # 限时 1.5 秒抓取线上版本，超时立刻放弃，绝不卡死面板！
-    SB_LATEST_VER=$(curl -s --connect-timeout 1 -m 1.5 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+   local SB_LATEST_VER=$(curl -s --connect-timeout 1 -m 1.5 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/' || true)
 
    UPDATE_TIPS=""
     if [[ -n "$SB_LATEST_VER" && "$SB_CORE_VER" != "未安装" && "$SB_CORE_VER" != "$SB_LATEST_VER" ]]; then
