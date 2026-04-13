@@ -7,6 +7,11 @@
 
 export LANG=en_US.UTF-8
 
+# === 🛡️ 工业级 Bash 安全带 ===
+set -euo pipefail
+TEMP_UUID=""
+TEMP_PASS=""
+
 # === 🛡️ 零依赖原子 JSON 写入引擎 (10/10 满分防写死) ===
 atomic_jq() {
     local tmp="${JSON_FILE}.tmp"
@@ -47,6 +52,16 @@ fi
 function get_smart_port() {
     local PROMPT_TEXT=$1
     local CHOSEN_PORT=""
+    local SILENT_MODE=${2:-false}
+    if [[ "$SILENT_MODE" == "true" ]]; then
+        while true; do
+            CHOSEN_PORT=$(shuf -i 10000-60000 -n 1)
+            if ! ss -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT " && ! netstat -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT "; then
+                echo "$CHOSEN_PORT"
+                return
+            fi
+        done
+    fi
     while true; do
         read -p "👉 $PROMPT_TEXT (10000-65535, 直接回车智能分配纯净端口): " INPUT_PORT
         if [[ -z "$INPUT_PORT" ]]; then
@@ -86,11 +101,11 @@ function show_dashboard() {
     ISP=$(echo "$IP_INFO" | grep -o '"isp":"[^"]*' | cut -d'"' -f4)
     SB_STAT=$(systemctl is-active --quiet vx-core.service 2>/dev/null && echo -e "${green}运行中 ✅${plain}" || echo -e "${red}未部署 ❌${plain}")
 
-    VL_STAT="${red}[未启]${plain}"; VL_PORT="-----"; VL_SNI="-------"
-    HY2_STAT="${red}[未启]${plain}"; HY2_PORT="-----"; HY2_SNI="-------"
-    TUIC_STAT="${red}[未启]${plain}"; TUIC_PORT="-----"; TUIC_SNI="-------"
-    VM_STAT="${red}[未启]${plain}"; VM_PORT="-----"; VM_SNI="-------"
-    TR_STAT="${red}[未启]${plain}"; TR_PORT="-----"; TR_SNI="-------"
+    local VL_STAT="${red}[未启]${plain}"; local VL_PORT="-----"; local VL_SNI="-------"; local VL_TYPE=""
+    local HY2_STAT="${red}[未启]${plain}"; local HY2_PORT="-----"; local HY2_SNI="-------"; local HY2_TYPE=""
+    local TUIC_STAT="${red}[未启]${plain}"; local TUIC_PORT="-----"; local TUIC_SNI="-------"; local TUIC_TYPE=""
+    local VM_STAT="${red}[未启]${plain}"; local VM_PORT="-----"; local VM_SNI="-------"; local VM_TYPE=""; local VM_LABEL="状态"
+    local TR_STAT="${red}[未启]${plain}"; local TR_PORT="-----"; local TR_SNI="-------"; local TR_TYPE=""
 
     # --- 拓展功能状态探测 ---
     ACME_STAT="${red}未部署 ❌${plain}"
@@ -788,21 +803,11 @@ function install_all_nodes() {
     echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
 
     # 4. 端口隔离生成池：智能侦测碰撞，确保大满贯端口绝对纯净！
-    local BASE_PORTS=()
-    while [ ${#BASE_PORTS[@]} -lt 5 ]; do
-        local TEMP_PORT=$(shuf -i 10000-60000 -n 1)
-        # 兼容全系 Linux：只要 ss 或 netstat 查出占用，直接物理抛弃
-        if ! ss -tunlp 2>/dev/null | grep -q ":$TEMP_PORT " && ! netstat -tunlp 2>/dev/null | grep -q ":$TEMP_PORT "; then
-            if [[ ! " ${BASE_PORTS[@]} " =~ " ${TEMP_PORT} " ]]; then
-                BASE_PORTS+=($TEMP_PORT)
-            fi
-        fi
-    done
-    local P1=${BASE_PORTS[0]}
-    local P2=${BASE_PORTS[1]}
-    local P3=${BASE_PORTS[2]}
-    local P4=${BASE_PORTS[3]}
-    local P5=${BASE_PORTS[4]}
+    local P1=$(get_smart_port "P1" true)
+    local P2=$(get_smart_port "P2" true)
+    local P3=$(get_smart_port "P3" true)
+    local P4=$(get_smart_port "P4" true)
+    local P5=$(get_smart_port "P5" true)
 
     # 5. 极速压入节点
     echo -e "\n${yellow}>>> [1/5] 正在极速压入 VLESS-Reality...${plain}"
@@ -1215,7 +1220,7 @@ if ! systemctl is-active --quiet vx-argo; then exit 0; fi
 DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
 [ -z "$DOMAIN" ] && exit 0
 
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN")
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN" || echo "000")
 if [[ "$HTTP_CODE" == "000" || "$HTTP_CODE" == "502" || "$HTTP_CODE" == "530" ]]; then
     systemctl restart vx-argo
     sleep 8
