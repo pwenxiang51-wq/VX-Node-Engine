@@ -1844,10 +1844,6 @@ function reset_random_sni() {
 
 # --- 主循环入口 ---
 while true; do
-    # 每次刷新菜单，重新配发独立防弹凭证，确保协议间物理隔离
-    TEMP_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")
-    TEMP_PASS=$(openssl rand -hex 8)
-    
     # ================= 👇 降维感知：跨面板 TG 兵符探测 👇 =================
     if [[ -f "/etc/velox_tg.conf" ]] && grep -q "GLOBAL_TG_TOKEN" "/etc/velox_tg.conf"; then
         # 终极智能探测：看看机器上有没有安装 velox 总面板本体！
