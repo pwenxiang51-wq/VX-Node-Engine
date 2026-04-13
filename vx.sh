@@ -344,7 +344,8 @@ function open_port() {
 
 function init_json() {
     if [[ ! -f "$JSON_FILE" ]]; then
-         echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
+        # 必须保证包含合法的 inbounds 数组，且绝不能包含 warp-socks 规则
+        echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
     fi
 }
 
