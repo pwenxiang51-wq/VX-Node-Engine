@@ -8,7 +8,7 @@
 export LANG=en_US.UTF-8
 
 # === 🛡️ 工业级 Bash 安全带 ===
-set -euo pipefail
+set -uo pipefail
 
 # === 🛡️ 零依赖原子 JSON 写入引擎 (10/10 满分防写死) ===
 atomic_jq() {
