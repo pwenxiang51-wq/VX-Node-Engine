@@ -1,7 +1,7 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V6.0 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V6.2 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
 # =======================================================
 
 
@@ -32,7 +32,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="6.0"
+VX_VERSION="6.2"
 
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
@@ -651,7 +651,7 @@ function install_tuic_v5() {
     echo -e "\n${yellow}>>> 锻造 TUIC v5 ：${plain}"
     LISTEN_PORT=$(get_smart_port "监听端口")
     read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
-    read -p "👉 密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$TEMP_PASS}
+    read -p "👉 密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$(openssl rand -hex 8)}
     
     # === 👇 极客级上下文感知雷达 👇 ===
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
@@ -803,11 +803,11 @@ function install_all_nodes() {
     echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
 
     # 4. 端口隔离生成池：智能侦测碰撞，确保大满贯端口绝对纯净！
-    local P1=$(get_smart_port "P1" true)
-    local P2=$(get_smart_port "P2" true)
-    local P3=$(get_smart_port "P3" true)
-    local P4=$(get_smart_port "P4" true)
-    local P5=$(get_smart_port "P5" true)
+    local P1=$(get_smart_port "" true)
+    local P2=$(get_smart_port "" true)
+    local P3=$(get_smart_port "" true)
+    local P4=$(get_smart_port "" true)
+    local P5=$(get_smart_port "" true)
 
     # 5. 极速压入节点
     echo -e "\n${yellow}>>> [1/5] 正在极速压入 VLESS-Reality...${plain}"
@@ -1211,7 +1211,7 @@ EOF
 
     sed -i '/VMess-Argo-复活甲/d' "$LINK_FILE" 2>/dev/null
     echo "$ARGO_LINK" >> "$LINK_FILE"
-    # 👇 V6.0 Argo 临时隧道防假死起搏器
+    # 👇 V6.2 Argo 临时隧道防假死起搏器
     if [[ "$ARGO_MODE" != "2" ]]; then
         echo -e "${yellow}>>> 正在部署 [Argo 心跳保活起搏器]...${plain}"
         cat << 'EOF' > /usr/local/bin/vx-argo-watchdog.sh
@@ -1221,7 +1221,7 @@ DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]
 [ -z "$DOMAIN" ] && exit 0
 
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN" || echo "000")
-if [[ "$HTTP_CODE" == "000" || "$HTTP_CODE" == "502" || "$HTTP_CODE" == "530" ]]; then
+if [[ "$HTTP_CODE" == "000" || "$HTTP_CODE" == "502" || "$HTTP_CODE" == "530" || "$HTTP_CODE" == "503" || "$HTTP_CODE" == "504" ]]; then
     systemctl restart vx-argo
     sleep 8
     NEW_DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
