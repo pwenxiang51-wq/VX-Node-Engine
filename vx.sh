@@ -708,6 +708,14 @@ EOF
 function install_vmess_ws() {
     check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 VMess-WS+TLS (满血防弹装甲) ：${plain}"
+    # === 🚀 极客防呆：重铸 VMess 会改变端口和 TLS，必须强拆 Argo 避免指针悬空 ===
+    if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+        echo -e "${yellow}⚠️ 警告：检测到您正在重铸 VMess 底座，已自动物理拆除失效的 Argo 隧道！请稍后重新挂载。${plain}"
+        systemctl stop vx-argo >/dev/null 2>&1
+        systemctl disable vx-argo >/dev/null 2>&1
+        rm -f /etc/systemd/system/vx-argo.service
+        systemctl daemon-reload
+    fi
     local LISTEN_PORT=$(get_smart_port "监听端口")
     read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
     
@@ -815,6 +823,19 @@ function install_all_nodes() {
 
     # 证书发证机只为 UDP 协议服务，避免污染
     generate_cert_dynamic "$UDP_SNI" >/dev/null 2>&1
+    
+    # === 🚀 极客防呆：大满贯重置前，必须联动超度所有战术外挂 ===
+    if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+        echo -e "${yellow}>>> 💥 侦测到大满贯重置，正在物理剥离旧版 Argo 隧道...${plain}"
+        systemctl stop vx-argo >/dev/null 2>&1
+        systemctl disable vx-argo >/dev/null 2>&1
+        rm -f /etc/systemd/system/vx-argo.service
+        systemctl daemon-reload
+    fi
+    if command -v warp-cli &> /dev/null && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
+        echo -e "${yellow}>>> 💥 侦测到大满贯重置，正在关闭 WARP 优选引擎...${plain}"
+        warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
+    fi
 
    # 3. 彻底核爆清空历史数据
     > "$LINK_FILE"
