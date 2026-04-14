@@ -1,14 +1,11 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V6.5 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V5.4 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
 # =======================================================
 
 
 export LANG=en_US.UTF-8
-
-# === 🛡️ 工业级 Bash 安全带 ===
-set -uo pipefail
 
 # === 🛡️ 零依赖原子 JSON 写入引擎 (10/10 满分防写死) ===
 atomic_jq() {
@@ -30,7 +27,8 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="6.5"
+VX_VERSION="5.4"
+
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
 
@@ -45,67 +43,26 @@ if [[ ! -f "/usr/local/bin/vx" ]]; then
     fi
 fi
 
-# === 🔪 V6.5 核心：强类型智能端口探针 (绝对静默版) ===
-function get_smart_port() {
-    local PROMPT_TEXT="${1:-}" # 防 -u 报错
-    local SILENT_MODE="${2:-false}"
-    local CHOSEN_PORT=""
-    
-    if [[ "$SILENT_MODE" == "true" ]]; then
-        while true; do
-            CHOSEN_PORT=$(shuf -i 10000-60000 -n 1)
-            if ! ss -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT " && ! netstat -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT "; then
-                # 只有这里 echo，是为了让外部 local P1=$(get_smart_port "" true) 能接收到值
-                echo "$CHOSEN_PORT"
-                return
-            fi
-        done
-    fi
-    
-    while true; do
-        read -p "👉 $PROMPT_TEXT (10000-65535, 直接回车智能分配纯净端口): " INPUT_PORT
-        if [[ -z "$INPUT_PORT" ]]; then
-            while true; do
-                CHOSEN_PORT=$(shuf -i 10000-60000 -n 1)
-                if ! ss -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT " && ! netstat -tunlp 2>/dev/null | grep -q ":$CHOSEN_PORT "; then
-                    break
-                fi
-            done
-            echo -e ">>> 🛡️ 探针已分配绝对纯净端口: ${cyan}$CHOSEN_PORT${plain}"
-            break
-        elif [[ "$INPUT_PORT" =~ ^[0-9]+$ ]] && [ "$INPUT_PORT" -ge 1 ] && [ "$INPUT_PORT" -le 65535 ]; then
-            if ss -tunlp 2>/dev/null | grep -q ":$INPUT_PORT " || netstat -tunlp 2>/dev/null | grep -q ":$INPUT_PORT "; then
-                echo -e "${red}❌ 致命拦截：端口 $INPUT_PORT 已被占用！请更换。${plain}"
-            else
-                CHOSEN_PORT="$INPUT_PORT"; break
-            fi
-        else
-            echo -e "${red}❌ 格式错误：端口必须是 1-65535 之间的纯数字！${plain}"
-        fi
-    done
-    echo "$CHOSEN_PORT"
-}
-
 # ==================================================
 # UI: 动态监控大屏
 # ==================================================
 function show_dashboard() {
     clear
-    OS_INFO=$(cat /etc/os-release | grep "PRETTY_NAME" | cut -d '"' -f 2 || echo "未知系统")
+    OS_INFO=$(cat /etc/os-release | grep "PRETTY_NAME" | cut -d '"' -f 2)
     KERNEL_VER=$(uname -r); ARCH=$(uname -m)
     BBR_STAT=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | awk '{print $3}' || echo "未开启")
     IPV4=$(curl -s4m3 icanhazip.com || echo "无 IPv4")
     IPV6=$(curl -s6m3 icanhazip.com || echo "无 IPv6")
-    IP_INFO=$(curl -s4m3 http://ip-api.com/json/ || echo "{}")
-    LOC=$(echo "$IP_INFO" | grep -o '"country":"[^"]*' | cut -d'"' -f4 || echo "未知")
-    ISP=$(echo "$IP_INFO" | grep -o '"isp":"[^"]*' | cut -d'"' -f4 || echo "未知")
+    IP_INFO=$(curl -s4m3 http://ip-api.com/json/)
+    LOC=$(echo "$IP_INFO" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
+    ISP=$(echo "$IP_INFO" | grep -o '"isp":"[^"]*' | cut -d'"' -f4)
     SB_STAT=$(systemctl is-active --quiet vx-core.service 2>/dev/null && echo -e "${green}运行中 ✅${plain}" || echo -e "${red}未部署 ❌${plain}")
 
-    local VL_STAT="${red}[未启]${plain}"; local VL_PORT="-----"; local VL_SNI="-------"; local VL_TYPE=""
-    local HY2_STAT="${red}[未启]${plain}"; local HY2_PORT="-----"; local HY2_SNI="-------"; local HY2_TYPE=""
-    local TUIC_STAT="${red}[未启]${plain}"; local TUIC_PORT="-----"; local TUIC_SNI="-------"; local TUIC_TYPE=""
-    local VM_STAT="${red}[未启]${plain}"; local VM_PORT="-----"; local VM_SNI="-------"; local VM_TYPE=""; local VM_LABEL="状态"
-    local TR_STAT="${red}[未启]${plain}"; local TR_PORT="-----"; local TR_SNI="-------"; local TR_TYPE=""
+    VL_STAT="${red}[未启]${plain}"; VL_PORT="-----"; VL_SNI="-------"
+    HY2_STAT="${red}[未启]${plain}"; HY2_PORT="-----"; HY2_SNI="-------"
+    TUIC_STAT="${red}[未启]${plain}"; TUIC_PORT="-----"; TUIC_SNI="-------"
+    VM_STAT="${red}[未启]${plain}"; VM_PORT="-----"; VM_SNI="-------"
+    TR_STAT="${red}[未启]${plain}"; TR_PORT="-----"; TR_SNI="-------"
 
     # --- 拓展功能状态探测 ---
     ACME_STAT="${red}未部署 ❌${plain}"
@@ -202,28 +159,24 @@ fi
         fi
     fi
 
-   # 极速无感检测版本更新 (1.5秒超时)
-   local REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" 2>/dev/null | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
+    # 极速无感检测版本更新 (1.5秒超时)
+  REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
     UPDATE_MSG=""
-    local NEW_FEAT="" # 👈 新增：专属云端探针变量
-    
     if [[ -n "$REMOTE_VER" && "$REMOTE_VER" != "$VX_VERSION" ]]; then
         UPDATE_MSG="${yellow}🔔 发现新版 v${REMOTE_VER} (请按 i 升级)${plain}"
-        # 🚀 动态抓取云端 Changelog 的前 3 行 (包含时间与核心更新)
-        NEW_FEAT=$(curl -s -m 1.5 "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/changelog.txt" 2>/dev/null | head -n 3 || true)
     else
         UPDATE_MSG="${green}✅ 最新版 (v${VX_VERSION})${plain}"
     fi
     # === 👇 极客新增：Sing-box 内核极速防卡死探针 👇 ===
     if [[ -x "/usr/local/bin/sing-box" ]]; then
-       SB_CORE_VER=$(/usr/local/bin/sing-box version 2>/dev/null | head -n 1 | awk '{print $3}' || echo "未知")
+        SB_CORE_VER=$(/usr/local/bin/sing-box version 2>/dev/null | head -n 1 | awk '{print $3}')
         [[ -z "$SB_CORE_VER" ]] && SB_CORE_VER="未知"
     else
         SB_CORE_VER="未安装"
     fi
 
     # 限时 1.5 秒抓取线上版本，超时立刻放弃，绝不卡死面板！
-   local SB_LATEST_VER=$(curl -s --connect-timeout 1 -m 1.5 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/' || true)
+    SB_LATEST_VER=$(curl -s --connect-timeout 1 -m 1.5 "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
 
    UPDATE_TIPS=""
     if [[ -n "$SB_LATEST_VER" && "$SB_CORE_VER" != "未安装" && "$SB_CORE_VER" != "$SB_LATEST_VER" ]]; then
@@ -242,16 +195,6 @@ fi
     echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
     echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
     echo -e " ⚡ 更新状态：$UPDATE_MSG"
-    
-    # 👇 注入升级速递：只有检测到更新且抓取成功时，才在主界面炫技
-    if [[ -n "$NEW_FEAT" ]]; then
-        echo -e " 📢 ${purple}升级速递：${plain}"
-        while IFS= read -r line; do
-            [[ -n "$line" ]] && echo -e "    ${cyan}»${plain} ${yellow}$line${plain}"
-        done <<< "$NEW_FEAT"
-    fi
-    # 👆 渲染结束
-
     echo -e " 🛡️ 架构认证：${yellow}全系 Linux 通杀${plain} (Ubuntu/Debian/CentOS) | ARM 神机适配"
     echo -e " ☁️ 云端穿透：${yellow}无视 1:1 NAT${plain} 深度适配 AWS / GCP / Oracle 等大厂 VPC"
     echo -e "${cyan}======================================================================${plain}"
@@ -344,8 +287,7 @@ function open_port() {
 
 function init_json() {
     if [[ ! -f "$JSON_FILE" ]]; then
-        # 必须保证包含合法的 inbounds 数组，且绝不能包含 warp-socks 规则
-        echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
+         echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
     fi
 }
 
@@ -561,75 +503,23 @@ function apply_acme_cert() {
     echo "${REAL_DOMAIN}" > $CERT_DIR/acme_domain.txt    
     echo -e "\n${green}✅ ACME 真实证书部署完成！系统将自动为您管理后续的十年续签。${plain}"
     echo -e "👉 ${yellow}提示: 安装 Hys2/TUIC/Trojan 时填入此域名，将自动接管真实证书！${plain}"
-    # 👇 V6.5 证书防暴毙守护进程
-    echo -e "${yellow}>>> 正在部署 [量子自签降级守护进程]...${plain}"
-    cat << 'EOF' > /usr/local/bin/vx-cert-guard.sh
-#!/bin/bash
-CERT_DIR="/etc/velox_vne/cert"
-DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
-[ -z "$DOMAIN" ] && exit 0
-
-if ! openssl x509 -checkend 432000 -noout -in "$CERT_DIR/acme.crt" 2>/dev/null; then
-    rm -f $CERT_DIR/private.key $CERT_DIR/cert.crt
-    openssl ecparam -genkey -name prime256v1 -out $CERT_DIR/private.key >/dev/null 2>&1
-    openssl req -new -x509 -days 3650 -key $CERT_DIR/private.key -out $CERT_DIR/cert.crt -subj "/C=US/ST=California/L=Los Angeles/O=Cloudflare/OU=CDN/CN=${DOMAIN}" >/dev/null 2>&1
-    systemctl restart vx-core.service
-    
-    if [[ -f "/etc/velox_tg.conf" ]]; then
-        source "/etc/velox_tg.conf"
-        MSG="🚨 <b>[VX 证书防线崩溃预警]</b>
-节点 <code>$(hostname)</code> 真实证书续签失败！已自动降级为自签证书保活，请及时排查！"
-        curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d chat_id="${GLOBAL_TG_CHATID}" -d text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
-    fi
-fi
-EOF
-    chmod +x /usr/local/bin/vx-cert-guard.sh
-    if crontab -l 2>/dev/null | grep -q "vx-cert-guard.sh"; then crontab -l 2>/dev/null | grep -v "vx-cert-guard.sh" | crontab -; fi
-    (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/vx-cert-guard.sh") | crontab -
-    echo -e "${green}✅ 证书降级守护已潜伏！${plain}"
-    # 👆 V6.5 守护结束
     read -p "👉 按回车返回大屏..."
 }
 
 # ==================================================
-# 协议库 (V6.6 终极防呆自愈版)
+# 协议库
 # ==================================================
-
-# --- 🚀 核心：智能单节点自愈与防呆雷达 ---
-function prepare_clean_env() {
-    local NODE_NAME=$1
-    if [[ -f "$JSON_FILE" ]] && jq -e '.inbounds | length > 0' "$JSON_FILE" >/dev/null 2>&1; then
-        echo -e "\n${yellow}⚠️ 雷达探测：当前系统已存在其他节点或外挂！${plain}"
-        echo -e "大佬，您想要如何装载 ${cyan}${NODE_NAME}${plain}？"
-        echo -e "  ${green}1.${plain} 增量叠加 (仅更新此节点，不影响其他协议与 WARP/Argo)"
-        echo -e "  ${red}2.${plain} 纯净单节点 (💥 物理核爆其他所有节点与外挂，【仅】保留当前协议) *推荐*"
-        read -p "👉 请选择 [1/2] (默认 1): " INSTALL_MODE
-        if [[ "$INSTALL_MODE" == "2" ]]; then
-            echo -e "${yellow}>>> 正在启动核爆清理程序，驱逐所有历史幽灵...${plain}"
-            > "$LINK_FILE"
-            if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-                systemctl stop vx-argo >/dev/null 2>&1; systemctl disable vx-argo >/dev/null 2>&1; rm -f /etc/systemd/system/vx-argo.service; systemctl daemon-reload
-            fi
-            if command -v warp-cli &> /dev/null; then warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1; fi
-            echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
-            echo -e "${green}✅ 环境已绝对纯净！开始锻造单节点...${plain}"
-        fi
-    fi
-    init_json
-}
-
 function install_vless_reality() {
-    check_sys && install_core && get_smart_ip
-    prepare_clean_env "VLESS-Reality"
+    check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 VLESS-Reality ：${plain}"
-    local LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
     read -p "👉 伪装域名 (直接回车默认 apple.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
 
-    local KEYS=$($BIN_FILE generate reality-keypair)
-    local PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
-    local PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
-    local SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    KEYS=$($BIN_FILE generate reality-keypair)
+    PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
+    PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
+    SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
 
     cat << EOF > /tmp/vx_tmp.json
 {"type":"vless","tag":"vless-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","reality":{"enabled":true,"handshake":{"server":"$SNI_DOMAIN","server_port":443},"private_key":"$PRV_KEY","short_id":["$SHORT_ID"]}}}
@@ -639,27 +529,28 @@ EOF
 
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
-    local SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-Reality-VeloX"
-    sed -i '/#VLESS-Reality-VeloX/d' "$LINK_FILE" 2>/dev/null || true
+    SHARE="vless://${UUID}@${SERVER_IP}:${LISTEN_PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#VLESS-VeloX"
+    sed -i '/^vless:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ VLESS-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
 }
 
 function install_hysteria2() {
-    check_sys && install_core && get_smart_ip
-    prepare_clean_env "Hysteria2"
+    check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 Hysteria2 ：${plain}"
-    local LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉 密码 (直接回车随机): " HYS_PASS; HYS_PASS=${HYS_PASS:-$(openssl rand -hex 8)}
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    read -p "👉 密码 (直接回车随机): " HYS_PASS; HYS_PASS=${HYS_PASS:-$TEMP_PASS}
     
+    # === 👇 极客级上下文感知雷达 👇 ===
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
-    local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
+        # 探测是否存在真实证书
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
             SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
             echo -e "${green}✅ 雷达锁定！侦测到真实防弹装甲，已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
         else
+            # 保留你原本极其优秀的量子随机防御机制！
             SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
             echo -e "${yellow}⚠️ 未挂载真实证书，UDP层已自动切换至防探针乱码装甲: ${SNI_DOMAIN}${plain}"
         fi
@@ -667,6 +558,7 @@ function install_hysteria2() {
         SNI_DOMAIN="$INPUT_DOMAIN"
         echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
     fi
+    # === 👆 雷达探测结束 👆 ===
     
     generate_cert_dynamic "$SNI_DOMAIN"
     cat << EOF > /tmp/vx_tmp.json
@@ -677,28 +569,29 @@ EOF
 
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
-    local SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&insecure=1#Hys2-VeloX"
-    sed -i '/#Hys2-VeloX/d' "$LINK_FILE" 2>/dev/null || true
+    SHARE="hysteria2://${HYS_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&insecure=1#Hys2-VeloX"
+    sed -i '/^hysteria2:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ Hysteria2 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
 }
 
 function install_tuic_v5() {
-    check_sys && install_core && get_smart_ip
-    prepare_clean_env "TUIC v5"
+    check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 TUIC v5 ：${plain}"
-    local LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
-    read -p "👉 密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$(openssl rand -hex 8)}
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
+    read -p "👉 密码 (直接回车随机): " TUIC_PASS; TUIC_PASS=${TUIC_PASS:-$TEMP_PASS}
     
+    # === 👇 极客级上下文感知雷达 👇 ===
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
-    local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
+        # 探测是否存在真实证书
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
             SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
             echo -e "${green}✅ 雷达锁定！侦测到真实防弹装甲，已自动继承 ACME 域名: ${cyan}$SNI_DOMAIN${plain}"
         else
+            # 保留你原本极其优秀的量子随机防御机制！
             SNI_DOMAIN="$(tr -dc 'a-z0-9' </dev/urandom | head -c 8).net"
             echo -e "${yellow}⚠️ 未挂载真实证书，UDP层已自动切换至防探针乱码装甲: ${SNI_DOMAIN}${plain}"
         fi
@@ -706,6 +599,7 @@ function install_tuic_v5() {
         SNI_DOMAIN="$INPUT_DOMAIN"
         echo -e "${green}✅ 手动强控覆盖！已锁定域名: ${cyan}$SNI_DOMAIN${plain}"
     fi
+    # === 👆 雷达探测结束 👆 ===
     
     generate_cert_dynamic "$SNI_DOMAIN"
     
@@ -717,22 +611,21 @@ EOF
 
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
-    local SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX"
-    sed -i '/#TUIC-VeloX/d' "$LINK_FILE" 2>/dev/null || true
+    SHARE="tuic://${UUID}:${TUIC_PASS}@${SERVER_IP}:${LISTEN_PORT}/?sni=${SNI_DOMAIN}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX"
+    sed -i '/^tuic:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ TUIC v5 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
 }
 
 function install_vmess_ws() {
-    check_sys && install_core && get_smart_ip
-    prepare_clean_env "VMess-WS+TLS"
+    check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 VMess-WS+TLS (满血防弹装甲) ：${plain}"
-    local LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")}
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    read -p "👉  UUID (直接回车随机): " UUID; UUID=${UUID:-$TEMP_UUID}
     
+    # 自动探测或注入域名装甲
     read -p "👉 绑定域名 (小白请直接回车，自动探测ACME或注入随机装甲): " INPUT_DOMAIN
-    local SNI_DOMAIN=""
     if [[ -z "$INPUT_DOMAIN" ]]; then
         if [[ -f "$CERT_DIR/acme.crt" && -f "$CERT_DIR/acme_domain.txt" ]]; then
             SNI_DOMAIN=$(cat "$CERT_DIR/acme_domain.txt" 2>/dev/null)
@@ -747,8 +640,9 @@ function install_vmess_ws() {
     fi
     
     generate_cert_dynamic "$SNI_DOMAIN"
-    local WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+    WS_PATH="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
 
+    # 原子压入带 TLS 的底层配置
     cat << EOF > /tmp/vx_tmp.json
 {"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"uuid":"$UUID","alterId":0}],"transport":{"type":"ws","path":"$WS_PATH"},"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","certificate_path":"$CERT_DIR/cert.crt","key_path":"$CERT_DIR/private.key"}}
 EOF
@@ -758,22 +652,10 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
     
-    local VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
-    local SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
-    
-    # 暴力撬开密码箱：精准狙击旧的普通 VMess (绝不误伤 Argo 链接)
-    if [[ -f "$LINK_FILE" ]]; then
-        mv "$LINK_FILE" "${LINK_FILE}.tmp"
-        cat "${LINK_FILE}.tmp" | while read line; do
-            if [[ "$line" == vmess://* ]]; then
-                if echo "$line" | sed 's/vmess:\/\///' | base64 -d 2>/dev/null | grep -q "VMess-WS-TLS-VeloX"; then
-                    continue # 发现旧节点，直接丢弃
-                fi
-            fi
-            echo "$line" >> "$LINK_FILE"
-        done
-        rm -f "${LINK_FILE}.tmp"
-    fi
+    # 构建满血带 TLS 的分享链接
+    VMESS_JSON=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$LISTEN_PORT" --arg id "$UUID" --arg net "ws" --arg host "$SNI_DOMAIN" --arg path "$WS_PATH" --arg tls "tls" --arg sni "$SNI_DOMAIN" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+    SHARE="vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
+    sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ VMess-WS+TLS 装载完成！已默认穿戴防弹装甲。${plain}"
@@ -781,17 +663,16 @@ EOF
 }
 
 function install_trojan_reality() {
-    check_sys && install_core && get_smart_ip
-    prepare_clean_env "Trojan-Reality"
+    check_sys && install_core && init_json && get_smart_ip
     echo -e "\n${yellow}>>> 锻造 Trojan-Reality (NPC进阶神级) ：${plain}"
-    local LISTEN_PORT=$(get_smart_port "监听端口")
-    read -p "👉 密码 (直接回车随机): " TROJAN_PASS; TROJAN_PASS=${TROJAN_PASS:-$(openssl rand -hex 8)}
+    read -p "👉 监听端口 (直接回车随机): " LISTEN_PORT; LISTEN_PORT=${LISTEN_PORT:-$(shuf -i 10000-60000 -n 1)}
+    read -p "👉 密码 (直接回车随机): " TROJAN_PASS; TROJAN_PASS=${TROJAN_PASS:-$TEMP_PASS}
     read -p "👉 伪装域名 (直接回车默认 apple.com): " SNI_DOMAIN; SNI_DOMAIN=${SNI_DOMAIN:-"apple.com"}
 
-    local KEYS=$($BIN_FILE generate reality-keypair)
-    local PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
-    local PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
-    local SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    KEYS=$($BIN_FILE generate reality-keypair)
+    PRV_KEY=$(echo "$KEYS" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
+    PUB_KEY=$(echo "$KEYS" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
+    SHORT_ID=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
 
     cat << EOF > /tmp/vx_tmp.json
 {"type":"trojan","tag":"trojan-in","listen":"::","listen_port":$LISTEN_PORT,"users":[{"password":"$TROJAN_PASS"}],"tls":{"enabled":true,"server_name":"$SNI_DOMAIN","reality":{"enabled":true,"handshake":{"server":"$SNI_DOMAIN","server_port":443},"private_key":"$PRV_KEY","short_id":["$SHORT_ID"]}}}
@@ -802,8 +683,8 @@ EOF
     open_port $LISTEN_PORT
     systemctl restart vx-core.service
 
-    local SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
-    sed -i '/#Trojan-Reality-VeloX/d' "$LINK_FILE" 2>/dev/null || true
+    SHARE="trojan://${TROJAN_PASS}@${SERVER_IP}:${LISTEN_PORT}?security=reality&sni=${SNI_DOMAIN}&fp=chrome&pbk=${PUB_KEY}&sid=${SHORT_ID}&type=tcp&headerType=none#Trojan-Reality-VeloX"
+    sed -i '/^trojan:\/\//d' "$LINK_FILE" 2>/dev/null
     echo "$SHARE" >> "$LINK_FILE"
     update_sub
     echo -e "\n${green}✅ Trojan-Reality 装载完成！${plain}"; echo -e "👉 ${yellow}提示: 请返回主菜单，按【f】提取链接！${plain}"
@@ -846,58 +727,49 @@ function install_all_nodes() {
 
     # 证书发证机只为 UDP 协议服务，避免污染
     generate_cert_dynamic "$UDP_SNI" >/dev/null 2>&1
-    
-    # === 🚀 极客防呆：大满贯重置前，必须联动超度所有战术外挂 ===
-    if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-        echo -e "${yellow}>>> 💥 侦测到大满贯重置，正在物理剥离旧版 Argo 隧道...${plain}"
-        systemctl stop vx-argo >/dev/null 2>&1
-        systemctl disable vx-argo >/dev/null 2>&1
-        rm -f /etc/systemd/system/vx-argo.service
-        systemctl daemon-reload
-    fi
-    if command -v warp-cli &> /dev/null && jq -e '.outbounds[] | select(.tag == "warp-socks")' "$JSON_FILE" >/dev/null 2>&1; then
-        echo -e "${yellow}>>> 💥 侦测到大满贯重置，正在关闭 WARP 优选引擎...${plain}"
-        warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
-    fi
 
    # 3. 彻底核爆清空历史数据
     > "$LINK_FILE"
     echo '{"log":{"level":"info","timestamp":true},"inbounds":[],"outbounds":[{"type":"direct","tag":"direct"},{"type":"block","tag":"block"}]}' | jq . | atomic_jq
 
-   # 4. 端口隔离生成池：智能侦测碰撞，确保大满贯端口绝对纯净！
-    local P1=$(get_smart_port "" true)
-    local P2=$(get_smart_port "" true)
-    local P3=$(get_smart_port "" true)
-    local P4=$(get_smart_port "" true)
-    local P5=$(get_smart_port "" true)
+    # 4. 端口隔离生成池：智能侦测碰撞，确保大满贯端口绝对纯净！
+    local BASE_PORTS=()
+    while [ ${#BASE_PORTS[@]} -lt 5 ]; do
+        local TEMP_PORT=$(shuf -i 10000-60000 -n 1)
+        # 兼容全系 Linux：只要 ss 或 netstat 查出占用，直接物理抛弃
+        if ! ss -tunlp 2>/dev/null | grep -q ":$TEMP_PORT " && ! netstat -tunlp 2>/dev/null | grep -q ":$TEMP_PORT "; then
+            if [[ ! " ${BASE_PORTS[@]} " =~ " ${TEMP_PORT} " ]]; then
+                BASE_PORTS+=($TEMP_PORT)
+            fi
+        fi
+    done
+    local P1=${BASE_PORTS[0]}
+    local P2=${BASE_PORTS[1]}
+    local P3=${BASE_PORTS[2]}
+    local P4=${BASE_PORTS[3]}
+    local P5=${BASE_PORTS[4]}
 
-   # 5. 极速压入节点
+    # 5. 极速压入节点
     echo -e "\n${yellow}>>> [1/5] 正在极速压入 VLESS-Reality...${plain}"
-    local U1=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)1")
-    local K1=$($BIN_FILE generate reality-keypair)
-    local PR1=$(echo "$K1" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
-    local PU1=$(echo "$K1" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
-    local S1=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    local U1=$TEMP_UUID; local K1=$($BIN_FILE generate reality-keypair); local PR1=$(echo "$K1" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU1=$(echo "$K1" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S1=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
     jq --argjson p "$P1" --arg u "$U1" --arg sni "apple.com" --arg pr "$PR1" --arg sid "$S1" '.inbounds += [{"type":"vless","tag":"vless-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE" | atomic_jq
     echo "vless://${U1}@${SERVER_IP}:${P1}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=apple.com&fp=chrome&pbk=${PU1}&sid=${S1}&type=tcp&headerType=none#VLESS-Reality-VeloX" >> "$LINK_FILE"
     open_port $P1
 
     echo -e "${yellow}>>> [2/5] 正在极速压入 Hysteria2...${plain}"
-    local PW2=$(openssl rand -hex 8)
+    local PW2=$TEMP_PASS
     jq --argjson p "$P2" --arg pw "$PW2" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"hysteria2","tag":"hy2-in","listen":"::","listen_port":$p,"users":[{"password":$pw}],"tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
     echo "hysteria2://${PW2}@${SERVER_IP}:${P2}/?sni=${UDP_SNI}&alpn=h3&insecure=1#Hys2-VeloX" >> "$LINK_FILE"
     open_port $P2
 
     echo -e "${yellow}>>> [3/5] 正在极速压入 TUIC v5...${plain}"
-    local U3=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)3")
-    local PW3=$(openssl rand -hex 8)
+    local U3=$TEMP_UUID; local PW3=$TEMP_PASS
     jq --argjson p "$P3" --arg u "$U3" --arg pw "$PW3" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"tuic","tag":"tuic-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"password":$pw}],"congestion_control":"bbr","tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
     echo "tuic://${U3}:${PW3}@${SERVER_IP}:${P3}/?sni=${UDP_SNI}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX" >> "$LINK_FILE"
     open_port $P3
 
-   echo -e "${yellow}>>> [4/5] 正在极速压入 VMess-WS+TLS...${plain}"
-    local U4=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)4")
-    local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+    echo -e "${yellow}>>> [4/5] 正在极速压入 VMess-WS+TLS...${plain}"
+    local U4=$TEMP_UUID; local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
     
     # 原子级注入：使用大满贯统一的 UDP_SNI 作为域名，强行挂载 TLS
     jq --argjson p "$P4" --arg u "$U4" --arg w "$W4" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg sni "$UDP_SNI" '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w},"tls":{"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
@@ -907,12 +779,8 @@ function install_all_nodes() {
     echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
     open_port $P4
 
-    echo -e "${yellow}>>> [5/5] 正在极速压入 Trojan-Reality...${plain}" 
-    local PW5=$(openssl rand -hex 8)
-    local K5=$($BIN_FILE generate reality-keypair)
-    local PR5=$(echo "$K5" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n')
-    local PU5=$(echo "$K5" | awk '/PublicKey/ {print $2}' | tr -d '\r\n')
-    local S5=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    echo -e "${yellow}>>> [5/5] 正在极速压入 Trojan-Reality...${plain}"
+    local PW5=$TEMP_PASS; local K5=$($BIN_FILE generate reality-keypair); local PR5=$(echo "$K5" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU5=$(echo "$K5" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S5=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
     jq --argjson p "$P5" --arg pw "$PW5" --arg sni "apple.com" --arg pr "$PR5" --arg sid "$S5" '.inbounds += [{"type":"trojan","tag":"trojan-in","listen":"::","listen_port":$p,"users":[{"password":$pw}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE"| atomic_jq
     echo "trojan://${PW5}@${SERVER_IP}:${P5}?security=reality&sni=apple.com&fp=chrome&pbk=${PU5}&sid=${S5}&type=tcp&headerType=none#Trojan-Reality-VeloX" >> "$LINK_FILE"
     open_port $P5
@@ -1283,40 +1151,6 @@ EOF
 
     sed -i '/VMess-Argo-复活甲/d' "$LINK_FILE" 2>/dev/null
     echo "$ARGO_LINK" >> "$LINK_FILE"
-   # 👇 V6.5 Argo 临时隧道心跳守护 (带防空洞超时保护)
-    if [[ "$ARGO_MODE" != "2" ]]; then
-        echo -e "${yellow}>>> 正在部署 [Argo 心跳保活起搏器]...${plain}"
-        cat << 'EOF' > /usr/local/bin/vx-argo-watchdog.sh
-#!/bin/bash
-if ! systemctl is-active --quiet vx-argo; then exit 0; fi
-DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
-[ -z "$DOMAIN" ] && exit 0
-
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN" || echo "000")
-if [[ "$HTTP_CODE" == "000" || "$HTTP_CODE" == "502" || "$HTTP_CODE" == "530" || "$HTTP_CODE" == "503" || "$HTTP_CODE" == "504" ]]; then
-    systemctl restart vx-argo
-    sleep 10
-    NEW_DOMAIN=$(journalctl -u vx-argo -n 50 --no-pager | grep -oE "https://[a-zA-Z0-9-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///' || true)
-    
-    if [[ -z "$NEW_DOMAIN" ]]; then
-        NEW_DOMAIN="[边缘节点分配超时，请手动检查]"
-    fi
-    
-    if [[ -f "/etc/velox_tg.conf" ]]; then
-        source "/etc/velox_tg.conf"
-        MSG="🔄 <b>[VX Argo 隧道重构通知]</b>
-大佬，节点 <code>$(hostname)</code> 临时隧道断流！已物理重启获取新通道。
-🔗 新防弹域名：<code>$NEW_DOMAIN</code>"
-        curl -s -X POST "https://api.telegram.org/bot${GLOBAL_TG_TOKEN}/sendMessage" -d chat_id="${GLOBAL_TG_CHATID}" -d text="$MSG" -d parse_mode="HTML" > /dev/null 2>&1
-    fi
-fi
-EOF
-        chmod +x /usr/local/bin/vx-argo-watchdog.sh
-        if crontab -l 2>/dev/null | grep -q "vx-argo-watchdog.sh"; then crontab -l 2>/dev/null | grep -v "vx-argo-watchdog.sh" | crontab -; fi
-        (crontab -l 2>/dev/null; echo "*/5 * * * * /usr/local/bin/vx-argo-watchdog.sh") | crontab -
-        echo -e "${green}✅ Argo 心跳守护已部署！${plain}"
-    fi
-    # 👆 V6.5 守护结束
     update_sub
     echo -e "\n${green}🎉 Argo 隧道挂载成功！哪怕服务器 IP 被墙，此节点依然坚挺！${plain}"
     if [[ "$ARGO_MODE" == "2" ]]; then
@@ -1484,9 +1318,6 @@ function uninstall_vne() {
     rm -f "$SERVICE_FILE" /etc/systemd/system/cloudflared.service /etc/systemd/system/vx-tg-sentinel.service /etc/systemd/system/vx-argo.service /etc/systemd/system/vx-sub.service /etc/systemd/system/vx-sub-https.service 2>/dev/null
     systemctl daemon-reload
 
-    # 强行重置 Systemd 的失败状态缓存，把幽灵进程彻底打飞
-    systemctl reset-failed 2>/dev/null
-
    echo -e "${yellow}>>> 💥 [2/5] 正在粉碎战术外挂 (Argo / WARP / Acme)...${plain}"
     # 爆破 Argo 隧道与 Cloudflared 二进制
     rm -rf /etc/cloudflared /root/.cloudflared 2>/dev/null
@@ -1496,15 +1327,7 @@ function uninstall_vne() {
     if command -v warp-cli &> /dev/null; then warp-cli disconnect 2>/dev/null; apt-get purge -y cloudflare-warp 2>/dev/null; fi
     if command -v wg-quick &> /dev/null; then wg-quick down wgcf 2>/dev/null; rm -rf /etc/wireguard/wgcf* 2>/dev/null; fi
     rm -f /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null
-
-    # 极客补枪：如果 WARP 客户端抽风崩溃，强行拆除其在内核态绑定的虚拟网卡
-    if ip link show CloudflareWARP &>/dev/null; then
-        ip link delete CloudflareWARP 2>/dev/null
-    fi
-    # 拆除遗留的 wgcf 网卡
-    if ip link show wgcf &>/dev/null; then
-        ip link delete wgcf 2>/dev/null
-    fi
+    
     # 爆破 Acme.sh
     if [[ -f ~/.acme.sh/acme.sh ]]; then ~/.acme.sh/acme.sh --uninstall 2>/dev/null; fi
     rm -rf ~/.acme.sh 2>/dev/null
@@ -1518,39 +1341,8 @@ function uninstall_vne() {
 
    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
     # 【致命错误修正】：精准抹除 /etc/velox_vne，决不能硬编码写 /etc/vx
-    echo -e "${yellow}>>> 💥 [附加打击] 正在提取历史端口，执行防火墙反向修补...${plain}"
-    # 极客嗅探：在删除配置文件前，读取所有用过的端口并将其物理封死
-    if [[ -f "$JSON_FILE" ]]; then
-        local PORTS=$(jq -r '.inbounds[].listen_port' "$JSON_FILE" 2>/dev/null | grep -v null)
-        for PORT in $PORTS; do
-            # 清除 UFW 规则
-            if command -v ufw &> /dev/null; then
-                ufw delete allow $PORT/tcp >/dev/null 2>&1
-                ufw delete allow $PORT/udp >/dev/null 2>&1
-            fi
-            # 清除 Firewalld 规则
-            if command -v firewall-cmd &> /dev/null; then
-                firewall-cmd --zone=public --remove-port=$PORT/tcp --permanent >/dev/null 2>&1
-                firewall-cmd --zone=public --remove-port=$PORT/udp --permanent >/dev/null 2>&1
-            fi
-            # 清除 Iptables 规则
-            if command -v iptables &> /dev/null; then
-                iptables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
-                iptables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
-                if command -v ip6tables &> /dev/null; then
-                    ip6tables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
-                    ip6tables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
-                fi
-            fi
-        done
-        # 保存重载
-        if command -v firewall-cmd &> /dev/null; then firewall-cmd --reload >/dev/null 2>&1; fi
-        if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
-    fi
     rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
     rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
-    # 彻底抹杀 V6.5 守护进程
-    rm -f /usr/local/bin/vx-cert-guard.sh /usr/local/bin/vx-argo-watchdog.sh 2>/dev/null
     rm -rf /usr/local/vx /tmp/sing-box* 2>/dev/null
     rm -f /usr/local/bin/vx-tg-sentinel.sh 2>/dev/null
     
@@ -1576,34 +1368,6 @@ function uninstall_vne() {
         (sleep 1 && rm -f "$0") &
     fi
     exit 0
-}
-
-# ==================================================
-# 📜 引擎进化编年史 (全量云端快照)
-# ==================================================
-function view_changelog() {
-    clear
-    echo -e "${cyan}======================================================================${plain}"
-    echo -e "                 📜 VeloX Node Engine 进化编年史"
-    echo -e "${cyan}======================================================================${plain}"
-    echo -e "${yellow}>>> 正在同步云端战斗日志...${plain}\n"
-    
-    local FULL_LOG=$(curl -s -m 5 "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/changelog.txt" 2>/dev/null)
-    
-    if [[ -n "$FULL_LOG" ]]; then
-        echo "$FULL_LOG" | while IFS= read -r line; do
-            if [[ "$line" == \[* ]]; then
-                echo -e "${purple}${line}${plain}"
-            else
-                echo -e "${green}${line}${plain}"
-            fi
-        done
-    else
-        echo -e "${red}❌ 同步超时！请检查 GitHub RAW 连通性。${plain}"
-    fi
-    
-    echo -e "\n${cyan}======================================================================${plain}"
-    read -p "👉 阅毕，请按回车键返回指挥中心..."
 }
 
 # ==================================================
@@ -1924,7 +1688,7 @@ EOF
 }
 
 # === 🚀 极客快捷指令拦截器 (CLI 模式) ===
-if [[ "${1:-}" == "log" || "${1:-}" == "radar" || "${1:-}" == "sentinel" ]]; then
+if [[ "$1" == "log" || "$1" == "radar" || "$1" == "sentinel" ]]; then
     trap 'echo -e "\n返回命令行..."' INT
     TZ="Asia/Shanghai" journalctl -u vx-core.service -f | grep --line-buffered "inbound connection from"
     trap - INT
@@ -1984,6 +1748,10 @@ function reset_random_sni() {
 
 # --- 主循环入口 ---
 while true; do
+    # 每次刷新菜单，重新配发独立防弹凭证，确保协议间物理隔离
+    TEMP_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)")
+    TEMP_PASS=$(openssl rand -hex 8)
+    
     # ================= 👇 降维感知：跨面板 TG 兵符探测 👇 =================
     if [[ -f "/etc/velox_tg.conf" ]] && grep -q "GLOBAL_TG_TOKEN" "/etc/velox_tg.conf"; then
         # 终极智能探测：看看机器上有没有安装 velox 总面板本体！
@@ -2016,11 +1784,10 @@ while true; do
     echo -e "  ${cyan}d.${plain} 🛡️ 挂载 WARP 优选解锁    |  ${cyan}i.${plain} 🔄 OTA 热更新引擎"
     echo -e "  ${cyan}e.${plain} ☁️ 挂载 Argo 防封复活甲  |  ${cyan}j.${plain} 📖 避坑指南与面板说明"
     echo -e "${cyan}----------------------------------------------------------------------${plain}"
-    echo -e "  ${cyan}k.${plain} 🗑️  ${red}彻底粉碎卸载${plain}         |  ${cyan}l.${plain} 📜 ${cyan}引擎更新日志${plain}"
-    echo -e "  ${cyan}0.${plain} 🔙 退出终端"
+    echo -e "  ${cyan}k.${plain} 🗑️  ${red}彻底粉碎卸载${plain}         |  ${cyan}0.${plain} 🔙 退出终端"
     echo -e "${cyan}======================================================================${plain}"
     
-    read -p "👉 执行指令 [0-6, a-l]: " choice
+    read -p "👉 执行指令 [0-6, a-k]: " choice
     case "$choice" in
         1) install_vless_reality; read -p "👉 按回车返回大屏..." ;;
         2) install_hysteria2; read -p "👉 按回车返回大屏..." ;;
@@ -2039,7 +1806,6 @@ while true; do
         i|I) update_ota ;;
         j|J) show_help ;;
         k|K) uninstall_vne ;;
-        l|L) view_changelog ;;
         0) break ;;
         *) echo -e "${red}❌ 无效指令，已触发物理拦截机制！${plain}"; sleep 1 ;;
     esac
