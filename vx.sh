@@ -763,38 +763,34 @@ function install_all_nodes() {
     local P4=${BASE_PORTS[3]}
     local P5=${BASE_PORTS[4]}
 
-    # 5. 极速压入节点
+    # 5. 极速压入节点 (👇此处已修复克隆人 Bug，每个协议独立生成凭证)
     echo -e "\n${yellow}>>> [1/5] 正在极速压入 VLESS-Reality...${plain}"
-    local U1=$TEMP_UUID; local K1=$($BIN_FILE generate reality-keypair); local PR1=$(echo "$K1" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU1=$(echo "$K1" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S1=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    local U1=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)1"); local K1=$($BIN_FILE generate reality-keypair); local PR1=$(echo "$K1" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU1=$(echo "$K1" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S1=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
     jq --argjson p "$P1" --arg u "$U1" --arg sni "apple.com" --arg pr "$PR1" --arg sid "$S1" '.inbounds += [{"type":"vless","tag":"vless-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"flow":"xtls-rprx-vision"}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE" | atomic_jq
     echo "vless://${U1}@${SERVER_IP}:${P1}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=apple.com&fp=chrome&pbk=${PU1}&sid=${S1}&type=tcp&headerType=none#VLESS-Reality-VeloX" >> "$LINK_FILE"
     open_port $P1
 
     echo -e "${yellow}>>> [2/5] 正在极速压入 Hysteria2...${plain}"
-    local PW2=$TEMP_PASS
+    local PW2=$(openssl rand -hex 8)
     jq --argjson p "$P2" --arg pw "$PW2" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"hysteria2","tag":"hy2-in","listen":"::","listen_port":$p,"users":[{"password":$pw}],"tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
     echo "hysteria2://${PW2}@${SERVER_IP}:${P2}/?sni=${UDP_SNI}&alpn=h3&insecure=1#Hys2-VeloX" >> "$LINK_FILE"
     open_port $P2
 
     echo -e "${yellow}>>> [3/5] 正在极速压入 TUIC v5...${plain}"
-    local U3=$TEMP_UUID; local PW3=$TEMP_PASS
+    local U3=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)3"); local PW3=$(openssl rand -hex 8)
     jq --argjson p "$P3" --arg u "$U3" --arg pw "$PW3" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" '.inbounds += [{"type":"tuic","tag":"tuic-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"password":$pw}],"congestion_control":"bbr","tls":{"enabled":true,"alpn":["h3"],"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
     echo "tuic://${U3}:${PW3}@${SERVER_IP}:${P3}/?sni=${UDP_SNI}&alpn=h3&congestion_control=bbr&insecure=1#TUIC-VeloX" >> "$LINK_FILE"
     open_port $P3
 
     echo -e "${yellow}>>> [4/5] 正在极速压入 VMess-WS+TLS...${plain}"
-    local U4=$TEMP_UUID; local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
-    
-    # 原子级注入：使用大满贯统一的 UDP_SNI 作为域名，强行挂载 TLS
+    local U4=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "vx-$(date +%s)4"); local W4="/vx-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
     jq --argjson p "$P4" --arg u "$U4" --arg w "$W4" --arg crt "$CERT_DIR/cert.crt" --arg key "$CERT_DIR/private.key" --arg sni "$UDP_SNI" '.inbounds += [{"type":"vmess","tag":"vmess-in","listen":"::","listen_port":$p,"users":[{"uuid":$u,"alterId":0}],"transport":{"type":"ws","path":$w},"tls":{"enabled":true,"server_name":$sni,"certificate_path":$crt,"key_path":$key}}]' "$JSON_FILE" | atomic_jq
-    
-    # 重铸带 TLS 的分享链接
     local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$P4" --arg id "$U4" --arg net "ws" --arg host "$UDP_SNI" --arg path "$W4" --arg tls "tls" --arg sni "$UDP_SNI" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
     echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
     open_port $P4
 
     echo -e "${yellow}>>> [5/5] 正在极速压入 Trojan-Reality...${plain}"
-    local PW5=$TEMP_PASS; local K5=$($BIN_FILE generate reality-keypair); local PR5=$(echo "$K5" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU5=$(echo "$K5" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S5=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
+    local PW5=$(openssl rand -hex 8); local K5=$($BIN_FILE generate reality-keypair); local PR5=$(echo "$K5" | awk '/PrivateKey/ {print $2}' | tr -d '\r\n'); local PU5=$(echo "$K5" | awk '/PublicKey/ {print $2}' | tr -d '\r\n'); local S5=$($BIN_FILE generate rand --hex 8 | tr -d '\r\n')
     jq --argjson p "$P5" --arg pw "$PW5" --arg sni "apple.com" --arg pr "$PR5" --arg sid "$S5" '.inbounds += [{"type":"trojan","tag":"trojan-in","listen":"::","listen_port":$p,"users":[{"password":$pw}],"tls":{"enabled":true,"server_name":$sni,"reality":{"enabled":true,"handshake":{"server":$sni,"server_port":443},"private_key":$pr,"short_id":[$sid]}}}]' "$JSON_FILE"| atomic_jq
     echo "trojan://${PW5}@${SERVER_IP}:${P5}?security=reality&sni=apple.com&fp=chrome&pbk=${PU5}&sid=${S5}&type=tcp&headerType=none#Trojan-Reality-VeloX" >> "$LINK_FILE"
     open_port $P5
@@ -1355,6 +1351,31 @@ function uninstall_vne() {
 
    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
     # 【致命错误修正】：精准抹除 /etc/velox_vne，决不能硬编码写 /etc/vx
+    # === 💥 极客补枪：提取历史端口，执行防火墙反向焊死 ===
+   if [[ -f "$JSON_FILE" ]]; then
+       local PORTS=$(jq -r '.inbounds[].listen_port' "$JSON_FILE" 2>/dev/null | grep -v null)
+       for PORT in $PORTS; do
+           if command -v ufw &> /dev/null; then
+               ufw delete allow $PORT/tcp >/dev/null 2>&1
+               ufw delete allow $PORT/udp >/dev/null 2>&1
+           fi
+           if command -v firewall-cmd &> /dev/null; then
+               firewall-cmd --zone=public --remove-port=$PORT/tcp --permanent >/dev/null 2>&1
+               firewall-cmd --zone=public --remove-port=$PORT/udp --permanent >/dev/null 2>&1
+           fi
+           if command -v iptables &> /dev/null; then
+               iptables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+               iptables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+               if command -v ip6tables &> /dev/null; then
+                   ip6tables -D INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null
+                   ip6tables -D INPUT -p udp --dport $PORT -j ACCEPT 2>/dev/null
+               fi
+           fi
+       done
+       if command -v firewall-cmd &> /dev/null; then firewall-cmd --reload >/dev/null 2>&1; fi
+       if command -v netfilter-persistent &> /dev/null; then netfilter-persistent save >/dev/null 2>&1; fi
+   fi
+   # ========================================================
     rm -rf "$CONF_DIR" # 使用 CONF_DIR 变量，决不再犯错
     rm -f "$BIN_FILE"  # 使用 BIN_FILE 变量，决不留后门
     rm -rf /usr/local/vx /tmp/sing-box* 2>/dev/null
