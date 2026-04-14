@@ -5,11 +5,43 @@
 [![Platform: Ubuntu 22.04+](https://img.shields.io/badge/Platform-Ubuntu_22.04+-orange.svg)](https://ubuntu.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-> “不要在屎山代码上缝缝补补。用不到 1000 行的纯净 Bash，通过底层的原子操作与状态机自愈，锻造一个被拔了网线也能满血复活的代理中枢。”
+> “抛弃动辄几千行的臃肿面条代码，回归极客纯粹。用不到 2000 行的纯净 Bash，通过底层的原子操作与状态机自愈，锻造一个被拔了网线也能满血复活的代理中枢。”
 
-👨‍💻 **Architect**: [@pwenxiang51-wq](https://github.com/pwenxiang51-wq) | 📝 **Blog**: [222382.xyz](https://222382.xyz)
+👨‍💻 **Architect**: [@pwenxiang51-wq](https://github.com/pwenxiang51-wq) | 📝 **Blog**: [222382.xyz](https://222382.xyz) | 🐛 **报告 Bug**: [Issues](https://github.com/pwenxiang51-wq/VX-Node-Engine/issues)
+
 
 ---
+💡 简介
+---
+
+Velox Node Engine (VX) 是一款专为极客打造的轻量化、全自动化代理节点部署引擎。基于最新前沿的防封锁理念，它采用全动态 JSON 构建技术与单一 Sing-box 纯净内核，彻底告别多内核冲突与系统垃圾。在主流 Linux 环境下都能实现**“一键点火、全量装载、无痕粉碎”**。
+
+### 🛡️ 跨平台防弹兼容性认证
+
+本引擎底层已注入极客级“双轨嗅探”与“环境隔离”逻辑，完美适配以下高阶环境：
+
+* **🐧 主流 Linux 发行版通杀：**
+    * **Ubuntu 18.04+（原生满血调优，最高优先级推荐！）**
+    * Debian 9+（极致兼容，完美丝滑）
+    * CentOS 7+ / AlmaLinux / Rocky Linux（智能切轨，底层包管理器与防火墙自适应）
+    * *注：极度阉割版 Alpine 或无 systemd 守护进程的灵车系统可能会遭遇“降维打击”，请谨慎使用。*
+
+* **☁️ 顶级云大厂 VPC 穿透支持：**
+    * Google Cloud Platform (GCP)
+    * Amazon Web Services (AWS)
+    * Oracle Cloud (甲骨文云)
+    * Azure / 阿里云国际 / 腾讯云国际
+    * *极客亮点：引擎内置了 1:1 NAT 物理出口嗅探技术，彻底解决云大厂内网 IP 迷失的死穴。只需在云服务商的网页控制台放行对应安全组端口，即可满血复活。*
+
+* **💻 硬件架构全量覆盖：**
+    * `x86_64` (AMD/Intel 传统架构)
+    * `aarch64` / `arm64` (完美发挥甲骨文等 ARM 神机架构的核动力性能，内核自动适配下载)
+
+* **🍎 关于 macOS 的防呆警告：**
+    * **不支持原生直连运行！** VX 引擎深度依赖 Linux 内核的 `systemd` 进程树与网络栈。如果您是高贵的 Mac 用户，请开个 Ubuntu 虚拟机，或者使用 Docker 进行环境隔离部署。
+
+---
+
 
 ## ⚡ 核心杀手锏 (Core Architecture)
 
@@ -35,15 +67,40 @@
 
 ## ⚔️ 战术部署 (Quick Start)
 
-默认最高兼容 **Ubuntu 22.04+**。在 `root` 权限下执行以下指令，瞬间点火装载：
+在你的终端执行以下神圣指令，开启终极穿透之旅 (请务必使用 **root** 用户运行)：
 
 ```bash
-bash <(curl -Ls [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh))
+bash <(curl -Ls https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh)
+```
+或者
+
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh)
 ```
 
-> 💡 **极客提示**：点火完成后，随时在终端敲击 `vx` 即可唤醒全息交互大屏。
+---
+
+
+> 💡 **极简召唤提示**：安装完成后，以后在任何目录只需输入 `vx` 即可瞬间唤醒交互监控大屏！
 
 ---
+
+### 🚑 紧急救援与强制同步 (急救包)
+
+如果你在修改源码、更新面板时遇到语法错误，导致 `vx` 命令彻底瘫痪（面板无法弹出）；或者你想**秒级强制拉取** GitHub 上的最新代码（穿透 CDN 缓存），请在 VPS 终端直接执行以下终极抢救指令：
+
+```bash
+curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /usr/local/bin/vx && chmod +x /usr/local/bin/vx
+```
+💡 提示：执行完毕后不会有任何提示。此时重新输入 vx 回车，你的大屏面板即可满血复活！
+
+---
+
+⚠️ NAT 服务器用户特别提示：
+如果您使用的是端口受限的 NAT 服务器，请不要使用 [6] 一键大满贯 功能（因为其采用全随机端口）。请使用菜单 [1] - [5] 独立安装，并在提示时手动输入您被分配的可用端口。或者直接使用 [e] Argo 隧道 进行无视端口的内网穿透！
+
+---
+
 
 ## 🧩 协议矩阵与高阶外挂
 
@@ -56,15 +113,9 @@ bash <(curl -Ls [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine
 - **WARP 智能优选分流**：建立本地 SOCKS5 隔离隧道，基于 Sing-box 神经元路由精准解锁 Netflix/ChatGPT。绝对不污染系统全局路由，保障 SSH 永不失联。
 - **OTA 热重载引擎**：支持无感升级面板与内核。引入“先验尸，后夺舍”机制，拉取新代码后必须通过 `bash -n` 严格校验才允许覆盖本体，阻断一切因 GitHub 抽风导致的脚本自毁。
 
----
 
-## 🚑 紧急抢救令 (Emergency Override)
 
-如果你在魔改源码时遭遇 `NBSP` 不可见空格污染，或是需要强行无视 CDN 缓存拉取云端最新架构，请祭出这行基因净化指令：
 
-```bash
-curl -sL "[https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date) +%s)" -o /tmp/vx.sh && sed -i 's/\xC2\xA0/ /g' /tmp/vx.sh && mv -f /tmp/vx.sh /usr/local/bin/vx && chmod +x /usr/local/bin/vx
-```
 
 ---
 
