@@ -970,6 +970,7 @@ function enable_argo() {
             local V_UUID=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .users[0].uuid' "$JSON_FILE")
             get_smart_ip
             local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$V_PORT" --arg id "$V_UUID" --arg net "ws" --arg host "$RESTORE_SNI" --arg path "$V_PATH" --arg tls "tls" --arg sni "$RESTORE_SNI" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
+            sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
             echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
             
             # 智能清理遗留的节点链接 (修复Base64无法匹配的Bug)
