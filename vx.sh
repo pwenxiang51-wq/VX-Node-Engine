@@ -147,19 +147,16 @@ fi
                 VM_LABEL="证书"
                 VM_SNI="${purple}自定义/自签${plain}"
             else
-                if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-                    VM_TYPE="(${yellow}Argo接管${plain})" # 10宽
-                    VM_LABEL="状态"
-                    if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
-                        VM_SNI="${yellow}Argo 固定隧道 (ZeroTrust)${plain}"
-                    else
-                        VM_SNI="${yellow}Argo 临时隧道 (trycloudflare)${plain}"
-                    fi
-                else
-                    VM_TYPE="(${red}纯WS明文${plain})" # 10宽
-                    VM_LABEL="状态"
-                    VM_SNI="${red}无保护裸奔 (建议挂载 CDN)${plain}"
-                fi
+               if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+            VM_TYPE="(${yellow}Argo接管${plain})" # 10宽
+            VM_LABEL="状态"
+            # 大佬极客精简版：上面已有详细雷达，这里统一输出极简防弹状态
+            VM_SNI="${yellow}Argo 穿透保护中${plain}"
+        else
+            VM_TYPE="(${red}纯WS明文${plain})" # 10宽
+            VM_LABEL="状态"
+            VM_SNI="${red}无保护裸奔 (建议挂载 CDN)${plain}"
+        fi
             fi
         else
             VM_LABEL="状态"
