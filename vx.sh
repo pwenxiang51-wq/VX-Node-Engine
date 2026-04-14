@@ -1045,11 +1045,36 @@ function enable_argo() {
     echo -e "\n${yellow}>>> [2/4] 请选择 Argo 隧道运行模式：${plain}"
     echo -e "  ${purple}1.${plain} 临时穿透模式 (系统自动分配随机域名，免配置，小白首选)"
     echo -e "  ${green}2.${plain} 固定保活模式 (需配置 CF Zero Trust，绑定自有域名，极客推荐)"
+    echo -e "  ${red}0.${plain} 返回主菜单 (安全取消操作)"
     echo ""
-    read -p "👉 请选择 [1/2] (直接回车默认选 1): " ARGO_MODE
-    ARGO_MODE=${ARGO_MODE:-1}
-
+    
+    local ARGO_MODE=""
     local ARGO_DOMAIN=""
+
+    # === 🚀 物理级防呆死循环拦截 ===
+    while true; do
+        read -p "👉 请选择 [0-2] (直接回车默认取消/返回 0): " ARGO_MODE
+        ARGO_MODE=${ARGO_MODE:-0} # 核心防呆：只要是空回车，强行赋予 0 触发撤退
+
+        case "$ARGO_MODE" in
+            1)
+                echo -e "\n${green}>>> 探测到指令 [1]，即将建立临时反向地下隧道...${plain}"
+                break # 合法指令，跳出死循环往下执行
+                ;;
+            2)
+                echo -e "\n${green}>>> 探测到指令 [2]，即将挂载 Zero Trust 固定装甲...${plain}"
+                break # 合法指令，跳出死循环往下执行
+                ;;
+            0)
+                echo -e "\n${yellow}>>> 撤退指令确认！操作已取消，安全返回大屏。${plain}"
+                sleep 1
+                return 0 # 优雅切断函数，返回上级
+                ;;
+            *)
+                echo -e "${red}❌ 致命拦截：非法参数！请收起你的测试脚本，老老实实输入 0、1 或 2！${plain}"
+                ;;
+        esac
+    done
 
     if [[ "$ARGO_MODE" == "2" ]]; then
         clear
@@ -1065,25 +1090,30 @@ function enable_argo() {
         echo -e "   - Service Type: ${green}HTTP${plain}"
         echo -e "   - URL: ${green}127.0.0.1:${VMESS_PORT}${plain}  <-- (极其重要，请直接复制此地址)"
         echo -e "${cyan}======================================================================${plain}"
-        echo -e "${yellow}提示: 如果您还没准备好，直接按回车键即可安全退出。${plain}\n"
+        echo -e "${yellow}提示: 如果您还没准备好，直接输入 0 回车即可安全退出。${plain}\n"
 
         read -p "👉 请粘贴您的 Cloudflare Tunnel Token: " ARGO_TOKEN
-        # 👑 核心优化：强行物理除垢，去掉所有可能的空格、换行符
-        ARGO_TOKEN=$(echo "$ARGO_TOKEN" | tr -d ' ' | tr -d '\n' | tr -d '\r')
-        
-        if [[ -z "$ARGO_TOKEN" ]]; then
+        # 防呆退出点 2
+        if [[ "$ARGO_TOKEN" == "0" || -z "$ARGO_TOKEN" ]]; then
             echo -e "\n${red}已取消操作，安全返回主界面。${plain}"
             sleep 1
             return
         fi
 
+        # 👑 核心优化：强行物理除垢，去掉所有可能的空格、换行符
+        ARGO_TOKEN=$(echo "$ARGO_TOKEN" | tr -d ' ' | tr -d '\n' | tr -d '\r')
+
         read -p "👉 请输入您刚才在 CF 后台绑定的固定域名 (如 argo.xxx.com): " ARGO_DOMAIN
         ARGO_DOMAIN=$(echo "$ARGO_DOMAIN" | tr -d ' ')
-        if [[ -z "$ARGO_DOMAIN" ]]; then
-            echo -e "\n${red}❌ 域名不能为空，操作已取消！${plain}"
+        if [[ -z "$ARGO_DOMAIN" || "$ARGO_DOMAIN" == "0" ]]; then
+            echo -e "\n${red}❌ 域名为空或已取消操作！${plain}"
             sleep 1
             return
         fi
+        
+        # 👑 联动优化：把固定域名写入本地雷达缓存，供 UI 大屏提取展示
+        mkdir -p /usr/local/etc
+        echo "$ARGO_DOMAIN" > /usr/local/etc/vx_argo_domain.txt 2>/dev/null
 
         echo -e "\n${yellow}>>> [3/4] 正在将 Token 注入系统守护进程...${plain}"
         cat <<EOF > /etc/systemd/system/vx-argo.service
