@@ -1754,6 +1754,24 @@ EOF
                 ;;
             6)
                 echo -e "\n${yellow}>>> 正在启动极客物理拔管协议 (Ubuntu 内核层拦截)...${plain}"
+                # === 🚀 新增：小黑屋透视雷达 ===
+                echo -e "\n${cyan}======================================================${plain}"
+                echo -e "☠️  当前【小黑屋】在押囚犯名单 (内核层已被封杀 IP)："
+                
+                > /tmp/vx_banned_ips.txt
+                # 探针：直插 iptables 底层提取 DROP 规则
+                iptables -L INPUT -n 2>/dev/null | grep "DROP" | awk '{print $4}' | grep -v "0.0.0.0/0" | sort -u > /tmp/vx_banned_ips.txt
+
+                if [[ -s /tmp/vx_banned_ips.txt ]]; then
+                    cat /tmp/vx_banned_ips.txt | while read banned_ip; do
+                        echo -e " ⛓️  ${red}${banned_ip}${plain}"
+                    done
+                else
+                    echo -e " 🈳 目前小黑屋空空如也，天下太平。"
+                fi
+                rm -f /tmp/vx_banned_ips.txt
+                echo -e "${cyan}======================================================${plain}\n"
+                # ================================
                 read -p "👉 请输入要封杀的 IP (直接回车取消): " kill_ip
                 if [[ -n "$kill_ip" ]]; then
                     # 🛡️ 顶级安全规范：正则校验输入是否为合法 IPv4/IPv6 格式
@@ -1771,6 +1789,24 @@ EOF
                 ;;
             7)
                 echo -e "\n${yellow}>>> 正在启动大赦天下协议 (解封 IP)...${plain}"
+                # === 🚀 新增：小黑屋透视雷达 ===
+                echo -e "\n${cyan}======================================================${plain}"
+                echo -e "☠️  当前【小黑屋】在押囚犯名单 (内核层已被封杀 IP)："
+                
+                > /tmp/vx_banned_ips.txt
+                # 探针：直插 iptables 底层提取 DROP 规则
+                iptables -L INPUT -n 2>/dev/null | grep "DROP" | awk '{print $4}' | grep -v "0.0.0.0/0" | sort -u > /tmp/vx_banned_ips.txt
+
+                if [[ -s /tmp/vx_banned_ips.txt ]]; then
+                    cat /tmp/vx_banned_ips.txt | while read banned_ip; do
+                        echo -e " ⛓️  ${red}${banned_ip}${plain}"
+                    done
+                else
+                    echo -e " 🈳 目前小黑屋空空如也，天下太平。"
+                fi
+                rm -f /tmp/vx_banned_ips.txt
+                echo -e "${cyan}======================================================${plain}\n"
+                # ================================
                 read -p "👉 请输入要释放的 IP (直接回车取消): " free_ip
                 if [[ -n "$free_ip" ]]; then
                     # 🛡️ 顶级安全规范：同样进行正则强校验
