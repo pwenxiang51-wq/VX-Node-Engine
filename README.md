@@ -1,4 +1,4 @@
-# 🚀 Velox Node Engine (VX) - 极客级防弹代理中枢
+# 🚀 Velox (VX) -  极客级防弹【节点搭建】引擎 & 代理中枢
 
 [![Version: V6.6 封神版](https://img.shields.io/badge/Version-V6.6_GodTier-blue.svg)](https://github.com/pwenxiang51-wq/VX-Node-Engine)
 [![Core: Sing-box](https://img.shields.io/badge/Core-Sing--box-purple.svg)](https://github.com/SagerNet/sing-box)
