@@ -970,7 +970,6 @@ function enable_argo() {
             local V_UUID=$(jq -r '.inbounds[] | select(.tag == "vmess-in") | .users[0].uuid' "$JSON_FILE")
             get_smart_ip
             local VM_J=$(jq -n -c --arg v "2" --arg ps "VMess-WS-TLS-VeloX" --arg add "$SERVER_IP" --arg port "$V_PORT" --arg id "$V_UUID" --arg net "ws" --arg host "$RESTORE_SNI" --arg path "$V_PATH" --arg tls "tls" --arg sni "$RESTORE_SNI" '{v:$v, ps:$ps, add:$add, port:$port, id:$id, aid:"0", scy:"auto", net:$net, type:"none", host:$host, path:$path, tls:$tls, sni:$sni}')
-            sed -i '/^vmess:\/\//d' "$LINK_FILE" 2>/dev/null
             echo "vmess://$(echo -n "$VM_J" | base64 -w 0)" >> "$LINK_FILE"
             
             # 智能清理遗留的节点链接 (修复Base64无法匹配的Bug)
@@ -1179,18 +1178,27 @@ EOF
 function update_ota() {
     clear
     echo -e "${cyan}======================================================================${plain}"
-    echo -e "            🔄 VeloX OTA 智能热更新引擎"
+    echo -e "             🔄 VeloX OTA 智能热更新引擎"
     echo -e "${cyan}======================================================================${plain}"
 
     # --- 1. 更新面板脚本自身 ---
     echo -e "${yellow}>>> [1/2] 正在检测面板脚本更新...${plain}"
     curl -sL "$SCRIPT_URL" -o /tmp/vx_new.sh
     if [[ -f /tmp/vx_new.sh && -s /tmp/vx_new.sh ]]; then
-        mv /tmp/vx_new.sh /usr/local/bin/vx
-        chmod +x /usr/local/bin/vx
-        echo -e "${green}✅ 面板脚本已同步至 GitHub 最新版本！${plain}"
+        # 🚀 极客防呆：必须在 /tmp 里先验尸！语法满分才允许覆盖本体！
+        if bash -n /tmp/vx_new.sh; then
+            mv -f /tmp/vx_new.sh /usr/local/bin/vx
+            chmod +x /usr/local/bin/vx
+            echo -e "${green}✅ 面板脚本已同步至 GitHub 最新版本！${plain}"
+        else
+            echo -e "\n${red}❌ 致命拦截：拉取的云端代码存在语法损坏 (可能是网络中断或 GitHub 抽风)！${plain}"
+            echo -e "${yellow}💡 极客装甲已强行阻断覆盖，成功保住了当前运行中的老版本！${plain}"
+            rm -f /tmp/vx_new.sh
+            read -p "👉 按回车键返回大屏..." && return
+        fi
     else
         echo -e "${red}❌ 脚本拉取失败，请检查网络！${plain}"
+        read -p "👉 按回车键返回大屏..." && return
     fi
 
     # --- 2. 更新 Sing-box 核心 ---
@@ -1246,14 +1254,8 @@ function update_ota() {
     echo -e "🚀 ${green}准备就绪！正在启动热重载引擎 (Hot Reloading)...${plain}"
     sleep 1.5
     
-   # 💥 极客魔法：先“验尸”查语法，再“夺舍”进程，绝对防断网自毁！
-    if bash -n /usr/local/bin/vx; then
-        exec /usr/local/bin/vx
-    else
-        echo -e "\n${red}❌ 致命拦截：检测到新脚本存在语法错误 (可能是网络中断或 GitHub 抽风)！${plain}"
-        echo -e "${yellow}💡 极客装甲已强行阻断热重载，成功保住了当前运行中的进程！请稍后再试。${plain}"
-        read -p "👉 按【回车键】返回大屏..."
-    fi
+    # 💥 既然前面已经验过尸了，这老伙计安全得很，直接夺舍进程起飞！
+    exec /usr/local/bin/vx
 }
 
 # ==================================================
