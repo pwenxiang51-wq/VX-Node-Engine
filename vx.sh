@@ -159,11 +159,15 @@ fi
         fi
     fi
 
-    # 极速无感检测版本更新 (1.5秒超时)
-  REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
+   # 极速无感检测版本更新 (1.5秒超时)
+   local REMOTE_VER=$(curl -s -m 1.5 "$SCRIPT_URL" 2>/dev/null | grep "^VX_VERSION=" | head -n 1 | cut -d'"' -f2 || true)
     UPDATE_MSG=""
+    local NEW_FEAT="" # 👈 新增：专属云端探针变量
+    
     if [[ -n "$REMOTE_VER" && "$REMOTE_VER" != "$VX_VERSION" ]]; then
         UPDATE_MSG="${yellow}🔔 发现新版 v${REMOTE_VER} (请按 i 升级)${plain}"
+        # 🚀 动态抓取云端 Changelog 的前 3 行 (包含时间与核心更新)
+        NEW_FEAT=$(curl -s -m 1.5 "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/changelog.txt" 2>/dev/null | head -n 3 || true)
     else
         UPDATE_MSG="${green}✅ 最新版 (v${VX_VERSION})${plain}"
     fi
@@ -195,6 +199,16 @@ fi
     echo -e "   👨‍💻 作者GitHub项目 : ${blue}github.com/pwenxiang51-wq${plain}"
     echo -e "   📝 作者Velo.x博客 : ${blue}222382.xyz${plain}"
     echo -e " ⚡ 更新状态：$UPDATE_MSG"
+    
+    # 👇 注入升级速递：只有检测到更新且抓取成功时，才在主界面炫技
+    if [[ -n "$NEW_FEAT" ]]; then
+        echo -e " 📢 ${purple}升级速递：${plain}"
+        while IFS= read -r line; do
+            [[ -n "$line" ]] && echo -e "    ${cyan}»${plain} ${yellow}$line${plain}"
+        done <<< "$NEW_FEAT"
+    fi
+    # 👆 渲染结束
+
     echo -e " 🛡️ 架构认证：${yellow}全系 Linux 通杀${plain} (Ubuntu/Debian/CentOS) | ARM 神机适配"
     echo -e " ☁️ 云端穿透：${yellow}无视 1:1 NAT${plain} 深度适配 AWS / GCP / Oracle 等大厂 VPC"
     echo -e "${cyan}======================================================================${plain}"
@@ -1371,6 +1385,34 @@ function uninstall_vne() {
 }
 
 # ==================================================
+# 📜 引擎进化编年史 (全量云端快照)
+# ==================================================
+function view_changelog() {
+    clear
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "                 📜 VeloX Node Engine 进化编年史"
+    echo -e "${cyan}======================================================================${plain}"
+    echo -e "${yellow}>>> 正在同步云端战斗日志...${plain}\n"
+    
+    local FULL_LOG=$(curl -s -m 5 "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/changelog.txt" 2>/dev/null)
+    
+    if [[ -n "$FULL_LOG" ]]; then
+        echo "$FULL_LOG" | while IFS= read -r line; do
+            if [[ "$line" == \[* ]]; then
+                echo -e "${purple}${line}${plain}"
+            else
+                echo -e "${green}${line}${plain}"
+            fi
+        done
+    else
+        echo -e "${red}❌ 同步超时！请检查 GitHub RAW 连通性。${plain}"
+    fi
+    
+    echo -e "\n${cyan}======================================================================${plain}"
+    read -p "👉 阅毕，请按回车键返回指挥中心..."
+}
+
+# ==================================================
 # 📖 隐藏式避坑指南与面板说明 (V5.4 扩充版)
 # ==================================================
 function show_help() {
@@ -1784,10 +1826,11 @@ while true; do
     echo -e "  ${cyan}d.${plain} 🛡️ 挂载 WARP 优选解锁    |  ${cyan}i.${plain} 🔄 OTA 热更新引擎"
     echo -e "  ${cyan}e.${plain} ☁️ 挂载 Argo 防封复活甲  |  ${cyan}j.${plain} 📖 避坑指南与面板说明"
     echo -e "${cyan}----------------------------------------------------------------------${plain}"
-    echo -e "  ${cyan}k.${plain} 🗑️  ${red}彻底粉碎卸载${plain}         |  ${cyan}0.${plain} 🔙 退出终端"
+    echo -e "  ${cyan}k.${plain} 🗑️  ${red}彻底粉碎卸载${plain}         |  ${cyan}l.${plain} 📜 ${cyan}引擎更新日志${plain}"
+    echo -e "  ${cyan}0.${plain} 🔙 退出终端"
     echo -e "${cyan}======================================================================${plain}"
     
-    read -p "👉 执行指令 [0-6, a-k]: " choice
+    read -p "👉 执行指令 [0-6, a-l]: " choice
     case "$choice" in
         1) install_vless_reality; read -p "👉 按回车返回大屏..." ;;
         2) install_hysteria2; read -p "👉 按回车返回大屏..." ;;
@@ -1806,6 +1849,7 @@ while true; do
         i|I) update_ota ;;
         j|J) show_help ;;
         k|K) uninstall_vne ;;
+        l|L) view_changelog ;;
         0) break ;;
         *) echo -e "${red}❌ 无效指令，已触发物理拦截机制！${plain}"; sleep 1 ;;
     esac
