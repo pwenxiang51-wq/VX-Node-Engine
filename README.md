@@ -119,10 +119,13 @@ curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/v
 
 ---
 
-## ⚖️ 极客致敬 & 声明
+## ⚖️ 开源协议 & 声明
 
-- 本项目基于 MIT 协议开源，底层核心由优秀的 [Sing-box](https://github.com/SagerNet/sing-box) 提供核动力支撑。
-- 代码仅供 Linux 底层网络路由研究与自动化运维学术交流，严禁用于非法用途。
+* 本项目基于 [MIT License](https://opensource.org/licenses/MIT) 开源。
+* 本项目仅供网络协议底层原理研究与学术交流使用。
+* 请严格遵守您所在国家和地区的法律法规，严禁将本项目用于任何非法用途，作者不对因滥用导致的任何后果负责。
+* 底层核心驱动致谢：[Sing-box](https://github.com/SagerNet/sing-box) | [Cloudflare](https://cloudflare.com)
+
 - 如果这套防弹架构为你省下了宝贵的折腾时间，请在右上角点亮 **Star ⭐️**。
 
 **"Talk is cheap. Show me the code."**
