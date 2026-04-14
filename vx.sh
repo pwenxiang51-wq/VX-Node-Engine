@@ -100,16 +100,28 @@ if [[ -f "$JSON_FILE" ]] && jq -e '.outbounds[] | select(.tag == "warp-socks")' 
     fi
 fi
 
-   # === ☁️ Argo 隧道细分探测 ===
-    ARGO_STAT="${red}未开启 ❌${plain}"
-    if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
-        # 极客嗅探：通过检查系统守护进程的启动参数，判断是固定隧道还是临时隧道
-        if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
-            ARGO_STAT="${green}运行中 ✅${plain} ${purple}[固定隧道/ZeroTrust]${plain}"
-        else
-            ARGO_STAT="${green}运行中 ✅${plain} ${yellow}[临时隧道/TryCloudflare]${plain}"
-        fi
+  # === ☁️ Argo 隧道细分探测 ===
+ARGO_STAT="${red}未开启 ❌${plain}"
+if systemctl is-active --quiet vx-argo.service 2>/dev/null; then
+    # 极客嗅探: 通过检查系统守护进程的启动参数，判断是固定还是临时
+    if grep -q "\-\-token" /etc/systemd/system/vx-argo.service 2>/dev/null; then
+        # 【固定隧道】
+        # 极客注意：Token 模式默认不在本地存域名。
+        # 这里假设你在部署时把域名存在了 /usr/local/etc/vx_argo_domain.txt (请根据你脚本实际保存的路径修改)
+        # 如果你没存过，这行会默认显示 ZeroTrust
+        FIXED_DOMAIN=$(cat /usr/local/etc/vx_argo_domain.txt 2>/dev/null || echo "ZeroTrust")
+        ARGO_STAT="${green}运行中 ✅${plain} ${purple}[固定: ${FIXED_DOMAIN}]${plain}"
+    else
+        # 【临时隧道】
+        # 探针：直接穿透 systemd 日志，从下发的原生 log 中暴力抠出 trycloudflare 域名
+        TEMP_DOMAIN=$(journalctl -u vx-argo.service -n 100 --no-pager 2>/dev/null | grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" | tail -n 1 | sed 's/https:\/\///')
+        
+        # 防呆容错：如果刚启动还没握手成功
+        [[ -z "$TEMP_DOMAIN" ]] && TEMP_DOMAIN="分配获取中..."
+        
+        ARGO_STAT="${green}运行中 ✅${plain} ${yellow}[临时: ${TEMP_DOMAIN}]${plain}"
     fi
+fi
 
    # === 🛡️ 节点矩阵加密状态动态嗅探 ===
     if [[ -f "$JSON_FILE" ]]; then
