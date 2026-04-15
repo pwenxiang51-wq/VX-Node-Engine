@@ -29,20 +29,7 @@ SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
 VX_VERSION="6.7"
 
-
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
-
-# === 👇 极客权限验证中枢 (私有化拦截) 👇 ===
-if [[ "$1" != "Velox" ]]; then
-    clear
-    echo -e "\033[0;31m======================================================\033[0m"
-    echo -e "🚫 \033[0;33mFATAL ERROR: Permission Denied. (Error Code: 403)\033[0m"
-    echo -e "🔒 \033[0;36mThis VeloX Engine is locked and running in PRIVATE mode.\033[0m"
-    echo -e "\033[0;31m======================================================\033[0m"
-    exit 1
-fi
-shift # 核心魔法：密码验证通过后，将密码参数丢弃，完美兼容底层的 vx log 等指令！
-# === 👆 拦截中枢结束 👆 ===
 
 if [[ ! -f "/usr/local/bin/vx" ]]; then
     curl -sL "$SCRIPT_URL" -o /usr/local/bin/vx.new >/dev/null 2>&1
