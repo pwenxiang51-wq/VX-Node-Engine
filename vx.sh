@@ -46,9 +46,6 @@ shift # 核心魔法：密码验证通过后，将密码参数丢弃，完美兼
 
 if [[ ! -f "/usr/local/bin/vx" ]]; then
     curl -sL "$SCRIPT_URL" -o /usr/local/bin/vx.new >/dev/null 2>&1
-
-if [[ ! -f "/usr/local/bin/vx" ]]; then
-    curl -sL "$SCRIPT_URL" -o /usr/local/bin/vx.new >/dev/null 2>&1
     # 增加原子级拦截：文件必须大于 0 字节才覆盖，防止断网自毁
     if [[ -s "/usr/local/bin/vx.new" ]]; then
         mv -f /usr/local/bin/vx.new /usr/local/bin/vx
