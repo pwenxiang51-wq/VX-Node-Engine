@@ -870,6 +870,8 @@ function enable_warp() {
             
             if command -v warp-cli &> /dev/null; then
                 warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
+                systemctl stop warp-svc >/dev/null 2>&1
+                systemctl disable warp-svc >/dev/null 2>&1
             fi
             
             systemctl restart vx-core.service
@@ -1376,7 +1378,11 @@ function uninstall_vne() {
     rm -f /usr/local/bin/cloudflared /usr/bin/cloudflared 2>/dev/null
     
     # 爆破 WARP 及 APT 基因污染残渣 (极客补枪)
-    if command -v warp-cli &> /dev/null; then warp-cli disconnect 2>/dev/null; apt-get purge -y cloudflare-warp 2>/dev/null; fi
+    if command -v warp-cli &> /dev/null; then warp-cli disconnect 2>/dev/null; fi
+    # 👇 剥离条件判断，无视状态进行无差别物理粉碎与除垢
+    apt-get purge -y cloudflare-warp 2>/dev/null
+    rm -rf /var/lib/cloudflare-warp /etc/cloudflare-warp 2>/dev/null
+    
     if command -v wg-quick &> /dev/null; then wg-quick down wgcf 2>/dev/null; rm -rf /etc/wireguard/wgcf* 2>/dev/null; fi
     rm -f /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null
     
@@ -1393,7 +1399,17 @@ function uninstall_vne() {
 
    echo -e "${yellow}>>> 💥 [4/5] 正在深层抹除配置文件目录与核心二进制...${plain}"
     # 【致命错误修正】：精准抹除 /etc/velox_vne，决不能硬编码写 /etc/vx
-    # === 💥 极客补枪：提取历史端口，执行防火墙反向焊死 ===
+    # === 💥 极客补枪：封闭订阅引擎随机开出的端口 ===
+    for SUB_F in "$CONF_DIR/sub_port.txt" "$CONF_DIR/sub_port_https.txt"; do
+        if [[ -f "$SUB_F" ]]; then
+            SPORT=$(cat "$SUB_F" 2>/dev/null)
+            if [[ -n "$SPORT" ]]; then
+                command -v ufw &> /dev/null && { ufw delete allow $SPORT/tcp >/dev/null 2>&1; }
+                command -v iptables &> /dev/null && { iptables -D INPUT -p tcp --dport $SPORT -j ACCEPT 2>/dev/null; }
+            fi
+        fi
+    done
+    # ========================================================
    if [[ -f "$JSON_FILE" ]]; then
        local PORTS=$(jq -r '.inbounds[].listen_port' "$JSON_FILE" 2>/dev/null | grep -v null)
        for PORT in $PORTS; do
