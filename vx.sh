@@ -176,7 +176,7 @@ fi
     if [[ -n "$REMOTE_VER" && "$REMOTE_VER" != "$VX_VERSION" ]]; then
         UPDATE_MSG="${yellow}🔔 发现新版 v${REMOTE_VER} (请按 i 升级)${plain}"
         # 🚀 动态抓取云端 Changelog 的前 3 行 (包含时间与核心更新)
-        NEW_FEAT=$(curl -s -m 1.5 "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/changelog.txt" 2>/dev/null | head -n 3 || true)
+        NEW_FEAT=$(curl -s -m 1.5 "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/changelog.txt" 2>/dev/null | head -n 5 || true)
     else
         UPDATE_MSG="${green}✅ 最新版 (v${VX_VERSION})${plain}"
     fi
