@@ -70,12 +70,12 @@ This engine is not just a node building tool, but an industrial-grade network ar
 Execute the following sacred command in your terminal to begin the ultimate penetration journey (Please ensure you run this as the **root** user):
 
 ```bash
-bash <(curl -Ls [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh))
+bash <(curl -Ls https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh)
 ```
 or
 
 ```bash
-bash <(wget -qO- [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh))
+bash <(wget -qO- https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh)
 ```
 
 ---
@@ -90,7 +90,7 @@ bash <(wget -qO- [https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engin
 If you encounter syntax errors while modifying the source code or updating the panel, causing the `vx` command to completely paralyze (the panel fails to pop up); or if you want to **forcefully pull** the latest code from GitHub in seconds (penetrating CDN caches), execute the following ultimate rescue command directly in your VPS terminal:
 
 ```bash
-curl -sL "[https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$](https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$)(date +%s)" -o /usr/local/bin/vx && chmod +x /usr/local/bin/vx
+curl -sL "https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh?v=$(date +%s)" -o /usr/local/bin/vx && chmod +x /usr/local/bin/vx
 ```
 💡 Tip: There will be no prompt upon completion. Simply type `vx` again and press Enter, and your dashboard will be resurrected with full health!
 
