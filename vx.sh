@@ -865,8 +865,17 @@ function enable_warp() {
         read -p "❓ 是否要一键关闭并剥离 WARP 路由规则？(y/n) [默认 n]: " close_choice
         if [[ "$close_choice" == [Yy] ]]; then
             echo -e "${yellow}>>> 正在剥离 Sing-box 神经元路由，恢复系统原生直连...${plain}"
-           jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq
+            # 💥 加强版焦土化剥离：精准切除 WARP 出口、防弹 DNS 和云端规则集
+            jq '
+                del(.outbounds[] | select(.tag == "warp-socks")) | 
+                del(.route.rules) | 
+                del(.route.rule_set) | 
+                del(.dns)
+            ' "$JSON_FILE" | atomic_jq
             
+            # 补回最基础的直连兜底规则
+            jq '.route.rules = [{"action":"sniff"}]' "$JSON_FILE" | atomic_jq
+                      
             if command -v warp-cli &> /dev/null; then
                 warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
                 systemctl stop warp-svc >/dev/null 2>&1
@@ -968,6 +977,26 @@ function enable_warp() {
             "outbound": "warp-socks"
         }
     ]' "$JSON_FILE" | atomic_jq
+
+    # 【防弹级 DNS 引擎】强制 WARP 隧道内解析，物理斩断跨域泄露
+    echo -e "${yellow}>>> 正在挂载防弹级 DNS 引擎...${plain}"
+    jq '. += {
+        "dns": {
+            "servers": [
+                { "tag": "dns-remote", "address": "https://1.1.1.1/dns-query", "detour": "warp-socks" },
+                { "tag": "dns-local", "address": "local", "detour": "direct" }
+            ],
+            "rules": [
+                {
+                    "domain_keyword": ["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"],
+                    "domain_suffix": ["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"],
+                    "server": "dns-remote"
+                }
+            ],
+            "final": "dns-local",
+            "independent_cache": true
+        }
+    }' "$JSON_FILE" | atomic_jq
 
     # 4. 重启生效
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
