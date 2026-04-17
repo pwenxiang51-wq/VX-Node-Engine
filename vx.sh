@@ -925,19 +925,19 @@ function enable_warp() {
         read -p "" && return
     fi
 
-  # === 3. 注入 Sing-box 神经元路由 + 防弹 DNS (适配 v1.12+ 新内核) ===
+ # === 3. 注入 Sing-box 神经元路由 + 防弹 DNS (修复 JQ 阻断 Bug 版) ===
     echo -e "${yellow}>>> [3/4] 正在向底层注入防弹 DNS 矩阵与流媒体分流规则...${plain}"
 
     # 先清理历史结构，确保注入纯净
-    jq 'del(.outbounds[]? | select(.tag == "warp-socks")) | del(.route.rules) | del(.route.rule_set) | del(.dns)' "$JSON_FILE" | atomic_jq
+    jq 'del(.outbounds[]? | select(.tag == "warp-socks")) | del(.route) | del(.dns)' "$JSON_FILE" | atomic_jq
 
-    # 🚀 核心黑科技：一次性原子级写入，适配最新 dns.servers 语法
+    # 🚀 核心黑科技：一次性原子级写入，重构完整 route 对象，彻底解决报错回滚
     jq '
     .outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}] |
     .dns = {
         "servers": [
             { "tag": "dns-remote", "type": "https", "server": "1.1.1.1", "detour": "warp-socks" },
-            { "tag": "dns-local", "type": "local", "detour": "direct" }
+            { "tag": "dns-local", "type": "local" }
         ],
         "rules": [
             {
@@ -950,18 +950,20 @@ function enable_warp() {
         "final": "dns-local",
         "strategy": "prefer_ipv4"
     } |
-    .route.rule_set = [
-        { "tag": "srs-ai", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-openai.srs", "download_detour": "direct" },
-        { "tag": "srs-google", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-google.srs", "download_detour": "direct" },
-        { "tag": "srs-media", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-netflix.srs", "download_detour": "direct" }
-    ] |
-    .route.rules = [
-        { "action": "sniff" },
-        { "protocol": "dns", "action": "hijack" },
-        { "rule_set": ["srs-ai", "srs-google", "srs-media"], "outbound": "warp-socks" },
-        { "domain_keyword": ["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"], "outbound": "warp-socks" },
-        { "domain_suffix": ["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"], "outbound": "warp-socks" }
-    ]' "$JSON_FILE" | atomic_jq
+    .route = {
+        "rule_set": [
+            { "tag": "srs-ai", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-openai.srs", "download_detour": "direct" },
+            { "tag": "srs-google", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-google.srs", "download_detour": "direct" },
+            { "tag": "srs-media", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-netflix.srs", "download_detour": "direct" }
+        ],
+        "rules": [
+            { "action": "sniff" },
+            { "protocol": "dns", "action": "hijack-dns" },
+            { "rule_set": ["srs-ai", "srs-google", "srs-media"], "outbound": "warp-socks" },
+            { "domain_keyword": ["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"], "outbound": "warp-socks" },
+            { "domain_suffix": ["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"], "outbound": "warp-socks" }
+        ]
+    }' "$JSON_FILE" | atomic_jq
     # 4. 重启生效
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
     systemctl restart vx-core.service
