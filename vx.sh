@@ -925,19 +925,19 @@ function enable_warp() {
         read -p "" && return
     fi
 
-   # === 3. 注入 Sing-box 神经元路由 + 防弹 DNS (终极一体化合并版) ===
+  # === 3. 注入 Sing-box 神经元路由 + 防弹 DNS (适配 v1.12+ 新内核) ===
     echo -e "${yellow}>>> [3/4] 正在向底层注入防弹 DNS 矩阵与流媒体分流规则...${plain}"
 
     # 先清理历史结构，确保注入纯净
     jq 'del(.outbounds[]? | select(.tag == "warp-socks")) | del(.route.rules) | del(.route.rule_set) | del(.dns)' "$JSON_FILE" | atomic_jq
 
-    # 🚀 核心黑科技：一次性原子级写入出口、DNS、云端规则、路由分流，并强劫持 DNS
+    # 🚀 核心黑科技：一次性原子级写入，适配最新 dns.servers 语法
     jq '
     .outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}] |
     .dns = {
         "servers": [
-            { "tag": "dns-remote", "address": "https://1.1.1.1/dns-query", "detour": "warp-socks" },
-            { "tag": "dns-local", "address": "local", "detour": "direct" }
+            { "tag": "dns-remote", "type": "https", "server": "1.1.1.1", "detour": "warp-socks" },
+            { "tag": "dns-local", "type": "local", "detour": "direct" }
         ],
         "rules": [
             {
@@ -948,8 +948,7 @@ function enable_warp() {
             { "rule_set": ["srs-ai", "srs-google", "srs-media"], "server": "dns-remote" }
         ],
         "final": "dns-local",
-        "strategy": "prefer_ipv4",
-        "independent_cache": true
+        "strategy": "prefer_ipv4"
     } |
     .route.rule_set = [
         { "tag": "srs-ai", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-openai.srs", "download_detour": "direct" },
@@ -958,7 +957,7 @@ function enable_warp() {
     ] |
     .route.rules = [
         { "action": "sniff" },
-        { "protocol": "dns", "action": "hijack" }, 
+        { "protocol": "dns", "action": "hijack" },
         { "rule_set": ["srs-ai", "srs-google", "srs-media"], "outbound": "warp-socks" },
         { "domain_keyword": ["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"], "outbound": "warp-socks" },
         { "domain_suffix": ["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"], "outbound": "warp-socks" }
