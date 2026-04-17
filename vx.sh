@@ -1,7 +1,7 @@
 #!/bin/bash
 # =======================================================
 # 项目: Velox Node Engine (VX) - 极简高阶代理核心生成器
-# 版本: V6.8 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
+# 版本: V6.7 (10/10满分原子版：五大协议全解锁 + 智能双栈解锁)
 # =======================================================
 
 
@@ -27,7 +27,7 @@ JSON_FILE="$CONF_DIR/config.json"
 LINK_FILE="$CONF_DIR/links.txt"
 SERVICE_FILE="/etc/systemd/system/vx-core.service"
 SCRIPT_URL="https://raw.githubusercontent.com/pwenxiang51-wq/VX-Node-Engine/main/vx.sh"
-VX_VERSION="6.8"
+VX_VERSION="6.7"
 
 [[ $EUID -ne 0 ]] && echo -e "${red}❌ 致命错误: 请使用 root 用户运行此引擎！${plain}" && exit 1
 
@@ -865,17 +865,8 @@ function enable_warp() {
         read -p "❓ 是否要一键关闭并剥离 WARP 路由规则？(y/n) [默认 n]: " close_choice
         if [[ "$close_choice" == [Yy] ]]; then
             echo -e "${yellow}>>> 正在剥离 Sing-box 神经元路由，恢复系统原生直连...${plain}"
-            # 💥 加强版焦土化剥离：精准切除 WARP 出口、防弹 DNS 和云端规则集
-            jq '
-                del(.outbounds[] | select(.tag == "warp-socks")) | 
-                del(.route.rules) | 
-                del(.route.rule_set) | 
-                del(.dns)
-            ' "$JSON_FILE" | atomic_jq
+           jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq
             
-            # 补回最基础的直连兜底规则
-            jq '.route.rules = [{"action":"sniff"}]' "$JSON_FILE" | atomic_jq
-                      
             if command -v warp-cli &> /dev/null; then
                 warp-cli --accept-tos disconnect >/dev/null 2>&1 || warp-cli disconnect >/dev/null 2>&1
                 systemctl stop warp-svc >/dev/null 2>&1
@@ -925,45 +916,22 @@ function enable_warp() {
         read -p "" && return
     fi
 
- # === 3. 注入 Sing-box 神经元路由 + 防弹 DNS (修复 JQ 阻断 Bug 版) ===
-    echo -e "${yellow}>>> [3/4] 正在向底层注入防弹 DNS 矩阵与流媒体分流规则...${plain}"
+    # 3. 注入 Sing-box 神经元路由
+    echo -e "${yellow}>>> [3/4] 正在向 Sing-box 注入 AI 与流媒体精准分流规则...${plain}"
 
-    # 先清理历史结构，确保注入纯净
-    jq 'del(.outbounds[]? | select(.tag == "warp-socks")) | del(.route) | del(.dns)' "$JSON_FILE" | atomic_jq
+    # 确保 route 结构存在
+    if ! jq -e '.route' "$JSON_FILE" >/dev/null; then
+        jq '. += {"route": {"rules": []}}' "$JSON_FILE" | atomic_jq
+    fi
 
-    # 🚀 核心黑科技：一次性原子级写入，重构完整 route 对象，彻底解决报错回滚
-    jq '
-    .outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}] |
-    .dns = {
-        "servers": [
-            { "tag": "dns-remote", "type": "https", "server": "1.1.1.1", "detour": "warp-socks" },
-            { "tag": "dns-local", "type": "local" }
-        ],
-        "rules": [
-            {
-                "domain_keyword": ["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"],
-                "domain_suffix": ["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"],
-                "server": "dns-remote"
-            },
-            { "rule_set": ["srs-ai", "srs-google", "srs-media"], "server": "dns-remote" }
-        ],
-        "final": "dns-local",
-        "strategy": "prefer_ipv4"
-    } |
-    .route = {
-        "rule_set": [
-            { "tag": "srs-ai", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-openai.srs", "download_detour": "direct" },
-            { "tag": "srs-google", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-google.srs", "download_detour": "direct" },
-            { "tag": "srs-media", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-netflix.srs", "download_detour": "direct" }
-        ],
-        "rules": [
-            { "action": "sniff" },
-            { "protocol": "dns", "action": "hijack-dns" },
-            { "rule_set": ["srs-ai", "srs-google", "srs-media"], "outbound": "warp-socks" },
-            { "domain_keyword": ["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"], "outbound": "warp-socks" },
-            { "domain_suffix": ["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"], "outbound": "warp-socks" }
-        ]
-    }' "$JSON_FILE" | atomic_jq
+    # 清理历史规则
+    jq 'del(.outbounds[] | select(.tag == "warp-socks")) | del(.route.rules[] | select(.outbound == "warp-socks"))' "$JSON_FILE" | atomic_jq
+
+    # 挂载 SOCKS5 出口
+    jq '.outbounds += [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}]' "$JSON_FILE" | atomic_jq
+
+    # 【最稳妥：神级关键词分流 + 强制底层流量嗅探】彻底解决多端 DNS 泄露导致的分流失效
+jq '.outbounds = [{"type":"socks","tag":"warp-socks","server":"127.0.0.1","server_port":40000}, {"type":"direct","tag":"direct"}, {"type":"block","tag":"block"}] | .route.rules = [{"action":"sniff"}] + [{"domain_keyword":["google","youtube","gmail","openai","chatgpt","netflix","spotify","instagram","dazn","disney","prime","hulu","tiktok","reddit","discord","pixiv","bing","wiki"],"domain_suffix":["openai.com","chatgpt.com","ai.com","anthropic.com","claude.ai","google.com","googleapis.com","gstatic.com","netflix.com","disneyplus.com","amazon.com","primevideo.com","tiktok.com","instagram.com","reddit.com","discord.com","wikipedia.org"],"outbound":"warp-socks"}]' "$JSON_FILE" | atomic_jq
     # 4. 重启生效
     echo -e "${yellow}>>> [4/4] 正在重启引擎，激活无缝解锁矩阵...${plain}"
     systemctl restart vx-core.service
